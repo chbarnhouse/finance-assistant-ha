@@ -1,7 +1,5 @@
 {
   "name": "Finance Assistant",
   "render_readme": true,
-  "domains": ["sensor", "calendar"],
-  "homeassistant": "2023.8.0",
-  "iot_class": "Local Polling"
+  "homeassistant": "2023.8.0"
 } 
