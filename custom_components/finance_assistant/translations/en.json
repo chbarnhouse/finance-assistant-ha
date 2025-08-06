@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Finance Assistant Configuration",
+        "description": "Configure your Finance Assistant connection",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "api_key": "API Key",
+          "ssl": "Use SSL"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to Finance Assistant",
+      "invalid_auth": "Invalid API key",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Finance Assistant is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Finance Assistant Options",
+        "description": "Configure Finance Assistant options",
+        "data": {
+          "scan_interval": "Scan Interval (seconds)"
+        }
+      }
+    }
+  }
+}

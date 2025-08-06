@@ -1,0 +1,11 @@
+{
+  "domain": "finance_assistant",
+  "name": "Finance Assistant",
+  "documentation": "https://github.com/chbarnhouse/finance-assistant",
+  "dependencies": [],
+  "codeowners": ["@chbarnhouse"],
+  "requirements": ["aiohttp"],
+  "version": "0.14.63",
+  "config_flow": true,
+  "iot_class": "local_polling"
+}
