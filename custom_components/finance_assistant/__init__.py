@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-__version__ = "1.0.6"
+__version__ = "1.0.7"
 
 import voluptuous as vol
 
@@ -23,19 +23,7 @@ from .coordinator import FinanceAssistantDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-CONFIG_SCHEMA = vol.Schema(
-    {
-        DOMAIN: vol.Schema(
-            {
-                vol.Required(CONF_HOST): cv.string,
-                vol.Optional(CONF_PORT, default=8080): cv.port,
-                vol.Optional(CONF_API_KEY): cv.string,
-                vol.Optional(CONF_SSL, default=False): cv.boolean,
-                vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): cv.positive_int,
-            }
-        )
-    }
-)
+# No CONFIG_SCHEMA needed - this integration only uses config entries
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.CALENDAR]
 
