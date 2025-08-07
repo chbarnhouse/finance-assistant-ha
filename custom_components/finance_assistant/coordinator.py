@@ -33,7 +33,10 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
         self.config = config
         self.host = config[CONF_HOST]
         self.port = config[CONF_PORT]
-        self.api_key = config.get(CONF_API_KEY, "")  # Optional now
+        self.api_key = config[CONF_API_KEY]  # Required
+        if not self.api_key:
+            raise ValueError("API key is required")
+        _LOGGER.debug("API key configured: %s", "***" if self.api_key else "NOT SET")
         self.ssl = config[CONF_SSL]
         self.scan_interval = config.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 

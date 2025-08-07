@@ -5,6 +5,14 @@ All notable changes to the Finance Assistant Home Assistant Integration will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.17] - 2025-08-07
+
+### Fixed
+
+- Fix UI caching issue where API key field still showed as "Optional"
+- Ensure API key validation is properly enforced in coordinator
+- Add debug logging for API key configuration
+
 ## [1.0.16] - 2025-08-07
 
 ### Changed
