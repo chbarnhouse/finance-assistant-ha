@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-__version__ = "1.0.5"
+__version__ = "1.0.6"
 
 import voluptuous as vol
 
@@ -29,7 +29,7 @@ CONFIG_SCHEMA = vol.Schema(
             {
                 vol.Required(CONF_HOST): cv.string,
                 vol.Optional(CONF_PORT, default=8080): cv.port,
-                vol.Required(CONF_API_KEY): cv.string,
+                vol.Optional(CONF_API_KEY): cv.string,
                 vol.Optional(CONF_SSL, default=False): cv.boolean,
                 vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): cv.positive_int,
             }
