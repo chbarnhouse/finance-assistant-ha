@@ -37,7 +37,7 @@ async def async_setup_entry(
     sensors = []
     if coordinator.data and "queries" in coordinator.data:
         for query in coordinator.data["queries"]:
-            if query.get("output_type") == "SENSOR":
+            if query.get("query_type") == "SENSOR":
                 sensor = FinanceAssistantSensor(coordinator, query)
                 sensors.append(sensor)
 

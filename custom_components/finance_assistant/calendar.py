@@ -37,7 +37,7 @@ async def async_setup_entry(
     calendars = []
     if coordinator.data and "queries" in coordinator.data:
         for query in coordinator.data["queries"]:
-            if query.get("output_type") == "CALENDAR":
+            if query.get("query_type") == "CALENDAR":
                 calendar = FinanceAssistantCalendar(coordinator, query)
                 calendars.append(calendar)
 
