@@ -60,7 +60,6 @@ class FinanceAssistantConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_HOST): str,
                     vol.Optional(CONF_PORT, default=DEFAULT_PORT): int,
-                    vol.Required(CONF_API_KEY): str,
                     vol.Optional(CONF_SSL, default=False): bool,
                     vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): int,
                 }

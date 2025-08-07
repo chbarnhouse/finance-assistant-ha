@@ -33,7 +33,7 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
         self.config = config
         self.host = config[CONF_HOST]
         self.port = config[CONF_PORT]
-        self.api_key = config[CONF_API_KEY]
+        self.api_key = config.get(CONF_API_KEY, "")  # Optional now
         self.ssl = config[CONF_SSL]
         self.scan_interval = config.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
@@ -52,13 +52,10 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
         """Validate the user input allows us to connect."""
         try:
             async with aiohttp.ClientSession() as session:
-                headers = {"X-API-Key": self.api_key}
                 url = f"{self.base_url}{API_ENDPOINT_QUERIES}"
                 
-                async with session.get(url, headers=headers) as response:
-                    if response.status == 401:
-                        raise InvalidAuth()
-                    elif response.status != 200:
+                async with session.get(url) as response:
+                    if response.status != 200:
                         raise CannotConnect()
         except aiohttp.ClientError as err:
             _LOGGER.error("Error connecting to Finance Assistant: %s", err)
@@ -68,11 +65,9 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
         """Update data via API."""
         try:
             async with aiohttp.ClientSession() as session:
-                headers = {"X-API-Key": self.api_key}
-                
                 # Get available queries
                 queries_url = f"{self.base_url}{API_ENDPOINT_QUERIES}"
-                async with session.get(queries_url, headers=headers) as response:
+                async with session.get(queries_url) as response:
                     if response.status != 200:
                         raise UpdateFailed(f"Error fetching queries: {response.status}")
                     queries = await response.json()
@@ -84,17 +79,17 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
                     query_id = query["id"]
                     
                     # Fetch sensor data for SENSOR queries
-                    if query.get("output_type") == "SENSOR":
+                    if query.get("query_type") == "SENSOR":
                         sensor_url = f"{self.base_url}{API_ENDPOINT_SENSOR.format(query_id=query_id)}"
-                        async with session.get(sensor_url, headers=headers) as response:
+                        async with session.get(sensor_url) as response:
                             if response.status == 200:
                                 sensor_data = await response.json()
                                 data["sensors"][query_id] = sensor_data
                     
                     # Fetch calendar data for CALENDAR queries
-                    elif query.get("output_type") == "CALENDAR":
+                    elif query.get("query_type") == "CALENDAR":
                         calendar_url = f"{self.base_url}{API_ENDPOINT_CALENDAR.format(query_id=query_id)}"
-                        async with session.get(calendar_url, headers=headers) as response:
+                        async with session.get(calendar_url) as response:
                             if response.status == 200:
                                 calendar_data = await response.json()
                                 data["calendars"][query_id] = calendar_data
@@ -109,10 +104,9 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
         """Get sensor data for a specific query."""
         try:
             async with aiohttp.ClientSession() as session:
-                headers = {"X-API-Key": self.api_key}
                 url = f"{self.base_url}{API_ENDPOINT_SENSOR.format(query_id=query_id)}"
                 
-                async with session.get(url, headers=headers) as response:
+                async with session.get(url) as response:
                     if response.status == 200:
                         return await response.json()
                     else:
@@ -126,10 +120,9 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
         """Get calendar data for a specific query."""
         try:
             async with aiohttp.ClientSession() as session:
-                headers = {"X-API-Key": self.api_key}
                 url = f"{self.base_url}{API_ENDPOINT_CALENDAR.format(query_id=query_id)}"
                 
-                async with session.get(url, headers=headers) as response:
+                async with session.get(url) as response:
                     if response.status == 200:
                         return await response.json()
                     else:
