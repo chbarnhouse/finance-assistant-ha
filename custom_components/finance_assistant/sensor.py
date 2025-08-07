@@ -134,8 +134,8 @@ class FinanceAssistantSensor(SensorEntity):
         }
 
         # Add last updated timestamp
-        if self.coordinator.last_update_success:
-            attrs[ATTR_LAST_UPDATED] = self.coordinator.last_update_success.isoformat()
+        if hasattr(self.coordinator, 'last_update_success_time') and self.coordinator.last_update_success_time:
+            attrs[ATTR_LAST_UPDATED] = self.coordinator.last_update_success_time.isoformat()
 
         # Add sensor-specific attributes from the data
         if (

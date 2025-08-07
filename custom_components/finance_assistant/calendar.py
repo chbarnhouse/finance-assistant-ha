@@ -57,6 +57,16 @@ class FinanceAssistantCalendar(CalendarEntity):
         self._attr_device_info = DEVICE_INFO
 
     @property
+    def event(self) -> CalendarEvent | None:
+        """Return the next upcoming event."""
+        events = self.events
+        if not events:
+            return None
+        
+        # Return the first event (assuming events are sorted by date)
+        return events[0]
+
+    @property
     def events(self) -> list[CalendarEvent]:
         """Return all events in the calendar."""
         if (
@@ -150,8 +160,8 @@ class FinanceAssistantCalendar(CalendarEntity):
         }
 
         # Add last updated timestamp
-        if self.coordinator.last_update_success:
-            attrs[ATTR_LAST_UPDATED] = self.coordinator.last_update_success.isoformat()
+        if hasattr(self.coordinator, 'last_update_success_time') and self.coordinator.last_update_success_time:
+            attrs[ATTR_LAST_UPDATED] = self.coordinator.last_update_success_time.isoformat()
 
         # Add calendar-specific attributes
         attrs["event_count"] = len(self.events)
