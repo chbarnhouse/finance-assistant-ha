@@ -53,12 +53,8 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
         try:
             async with aiohttp.ClientSession() as session:
                 url = f"{self.base_url}{API_ENDPOINT_QUERIES}"
-                headers = {}
-                if self.api_key:
-                    headers["X-API-Key"] = self.api_key
-                    _LOGGER.debug("Validating connection with API key")
-                else:
-                    _LOGGER.debug("Validating connection without API key")
+                headers = {"X-API-Key": self.api_key}
+                _LOGGER.debug("Validating connection with API key")
                 
                 async with session.get(url, headers=headers) as response:
                     if response.status != 200:
@@ -71,13 +67,9 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
         """Update data via API."""
         try:
             async with aiohttp.ClientSession() as session:
-                # Prepare headers
-                headers = {}
-                if self.api_key:
-                    headers["X-API-Key"] = self.api_key
-                    _LOGGER.debug("Using API key for authentication")
-                else:
-                    _LOGGER.debug("No API key provided - making unauthenticated requests")
+                # Prepare headers with required API key
+                headers = {"X-API-Key": self.api_key}
+                _LOGGER.debug("Using API key for authentication")
                 
                 # Get available queries
                 queries_url = f"{self.base_url}{API_ENDPOINT_QUERIES}"
@@ -136,9 +128,7 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
         try:
             async with aiohttp.ClientSession() as session:
                 url = f"{self.base_url}{API_ENDPOINT_SENSOR.format(query_id=query_id)}"
-                headers = {}
-                if self.api_key:
-                    headers["X-API-Key"] = self.api_key
+                headers = {"X-API-Key": self.api_key}
                 
                 async with session.get(url, headers=headers) as response:
                     if response.status == 200:
@@ -155,9 +145,7 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
         try:
             async with aiohttp.ClientSession() as session:
                 url = f"{self.base_url}{API_ENDPOINT_CALENDAR.format(query_id=query_id)}"
-                headers = {}
-                if self.api_key:
-                    headers["X-API-Key"] = self.api_key
+                headers = {"X-API-Key": self.api_key}
                 
                 async with session.get(url, headers=headers) as response:
                     if response.status == 200:

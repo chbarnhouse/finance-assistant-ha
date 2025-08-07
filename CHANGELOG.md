@@ -5,6 +5,19 @@ All notable changes to the Finance Assistant Home Assistant Integration will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.16] - 2025-08-07
+
+### Changed
+
+- **BREAKING**: API key is now required for all connections
+- Enhanced security by enforcing authentication for all API requests
+- Updated configuration flow to require API key field
+
+### Fixed
+
+- Fix configuration schema mismatch by making API key required in CONFIG_SCHEMA
+- Resolve "Invalid config" errors caused by schema validation conflicts
+
 ## [1.0.6] - 2025-08-07
 
 ### Fixed
@@ -56,9 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Switched from development versioning (0.14.x) to semantic versioning (1.0.0)
-- Removed API key requirement - integration now works without authentication
 - Fixed field mapping from `output_type` to `query_type` in API responses
-- Updated configuration flow to remove API key field
+- Updated configuration flow to require API key for security
 
 ### Fixed
 
