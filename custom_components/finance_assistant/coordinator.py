@@ -53,8 +53,11 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
         try:
             async with aiohttp.ClientSession() as session:
                 url = f"{self.base_url}{API_ENDPOINT_QUERIES}"
+                headers = {}
+                if self.api_key:
+                    headers["X-API-Key"] = self.api_key
                 
-                async with session.get(url) as response:
+                async with session.get(url, headers=headers) as response:
                     if response.status != 200:
                         raise CannotConnect()
         except aiohttp.ClientError as err:
@@ -65,9 +68,14 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
         """Update data via API."""
         try:
             async with aiohttp.ClientSession() as session:
+                # Prepare headers
+                headers = {}
+                if self.api_key:
+                    headers["X-API-Key"] = self.api_key
+                
                 # Get available queries
                 queries_url = f"{self.base_url}{API_ENDPOINT_QUERIES}"
-                async with session.get(queries_url) as response:
+                async with session.get(queries_url, headers=headers) as response:
                     if response.status != 200:
                         raise UpdateFailed(f"Error fetching queries: {response.status}")
                     queries = await response.json()
@@ -82,7 +90,7 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
                         # Fetch sensor data for SENSOR queries
                         if query.get("query_type") == "SENSOR":
                             sensor_url = f"{self.base_url}{API_ENDPOINT_SENSOR.format(query_id=query_id)}"
-                            async with session.get(sensor_url) as response:
+                            async with session.get(sensor_url, headers=headers) as response:
                                 if response.status == 200:
                                     sensor_data = await response.json()
                                     data["sensors"][query_id] = sensor_data
@@ -92,7 +100,7 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
                         # Fetch calendar data for CALENDAR queries
                         elif query.get("query_type") == "CALENDAR":
                             calendar_url = f"{self.base_url}{API_ENDPOINT_CALENDAR.format(query_id=query_id)}"
-                            async with session.get(calendar_url) as response:
+                            async with session.get(calendar_url, headers=headers) as response:
                                 if response.status == 200:
                                     calendar_data = await response.json()
                                     data["calendars"][query_id] = calendar_data
@@ -117,8 +125,11 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
         try:
             async with aiohttp.ClientSession() as session:
                 url = f"{self.base_url}{API_ENDPOINT_SENSOR.format(query_id=query_id)}"
+                headers = {}
+                if self.api_key:
+                    headers["X-API-Key"] = self.api_key
                 
-                async with session.get(url) as response:
+                async with session.get(url, headers=headers) as response:
                     if response.status == 200:
                         return await response.json()
                     else:
@@ -133,8 +144,11 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
         try:
             async with aiohttp.ClientSession() as session:
                 url = f"{self.base_url}{API_ENDPOINT_CALENDAR.format(query_id=query_id)}"
+                headers = {}
+                if self.api_key:
+                    headers["X-API-Key"] = self.api_key
                 
-                async with session.get(url) as response:
+                async with session.get(url, headers=headers) as response:
                     if response.status == 200:
                         return await response.json()
                     else:
