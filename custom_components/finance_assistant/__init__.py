@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-__version__ = "1.0.7"
+__version__ = "1.0.8"
 
 import voluptuous as vol
 
@@ -33,7 +33,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
 
     # Create coordinator
-    coordinator = FinanceAssistantDataUpdateCoordinator(hass, entry)
+    coordinator = FinanceAssistantDataUpdateCoordinator(hass, entry.data)
     await coordinator.async_config_entry_first_refresh()
 
     # Store coordinator
