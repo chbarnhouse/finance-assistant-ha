@@ -56,6 +56,9 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
                 headers = {}
                 if self.api_key:
                     headers["X-API-Key"] = self.api_key
+                    _LOGGER.debug("Validating connection with API key")
+                else:
+                    _LOGGER.debug("Validating connection without API key")
                 
                 async with session.get(url, headers=headers) as response:
                     if response.status != 200:
@@ -72,6 +75,9 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
                 headers = {}
                 if self.api_key:
                     headers["X-API-Key"] = self.api_key
+                    _LOGGER.debug("Using API key for authentication")
+                else:
+                    _LOGGER.debug("No API key provided - making unauthenticated requests")
                 
                 # Get available queries
                 queries_url = f"{self.base_url}{API_ENDPOINT_QUERIES}"
