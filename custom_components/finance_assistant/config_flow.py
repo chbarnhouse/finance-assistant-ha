@@ -26,7 +26,7 @@ _LOGGER = logging.getLogger(__name__)
 class FinanceAssistantConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Finance Assistant."""
 
-    VERSION = 1
+    VERSION = 2
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -35,24 +35,28 @@ class FinanceAssistantConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            try:
-                # Test the connection
-                coordinator = FinanceAssistantDataUpdateCoordinator(
-                    self.hass, user_input
-                )
-                await coordinator.async_validate_input()
+            # Validate API key is provided
+            if not user_input.get(CONF_API_KEY):
+                errors[CONF_API_KEY] = "required"
+            else:
+                try:
+                    # Test the connection
+                    coordinator = FinanceAssistantDataUpdateCoordinator(
+                        self.hass, user_input
+                    )
+                    await coordinator.async_validate_input()
 
-                return self.async_create_entry(
-                    title=f"Finance Assistant ({user_input[CONF_HOST]}:{user_input[CONF_PORT]})",
-                    data=user_input,
-                )
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
-            except InvalidAuth:
-                errors["base"] = "invalid_auth"
-            except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
+                    return self.async_create_entry(
+                        title=f"Finance Assistant ({user_input[CONF_HOST]}:{user_input[CONF_PORT]})",
+                        data=user_input,
+                    )
+                except CannotConnect:
+                    errors["base"] = "cannot_connect"
+                except InvalidAuth:
+                    errors["base"] = "invalid_auth"
+                except Exception:  # pylint: disable=broad-except
+                    _LOGGER.exception("Unexpected exception")
+                    errors["base"] = "unknown"
 
         return self.async_show_form(
             step_id="user",
@@ -60,7 +64,7 @@ class FinanceAssistantConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_HOST): str,
                     vol.Optional(CONF_PORT, default=DEFAULT_PORT): int,
-                    vol.Required(CONF_API_KEY): str,
+                    vol.Required(CONF_API_KEY, description="Your Finance Assistant API key"): str,
                     vol.Optional(CONF_SSL, default=False): bool,
                     vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): int,
                 }
