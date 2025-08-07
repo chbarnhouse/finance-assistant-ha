@@ -143,6 +143,8 @@ For issues and questions:
 
 ## Version History
 
+- **1.0.6**: Fix configuration schema mismatch by making API key optional
+- **1.0.5**: Force version update to resolve caching issues
 - **1.0.0**: Initial stable release with authentication fixes and semantic versioning
 - **0.14.64**: Fixed authentication and query_type field mapping
 - **0.14.63**: Initial release with sensor and calendar support
