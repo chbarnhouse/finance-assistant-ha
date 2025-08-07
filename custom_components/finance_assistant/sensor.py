@@ -65,8 +65,18 @@ class FinanceAssistantSensor(SensorEntity):
             and self.query_id in self.coordinator.data["sensors"]
         ):
             sensor_data = self.coordinator.data["sensors"][self.query_id]
-            return sensor_data.get("state", "unknown")
-        return "unknown"
+            # Handle different data formats
+            if isinstance(sensor_data, dict):
+                return sensor_data.get("state", sensor_data.get("value", 0))
+            elif isinstance(sensor_data, (int, float)):
+                return sensor_data
+            elif isinstance(sensor_data, list) and len(sensor_data) > 0:
+                # If it's a list, try to get the first item's value
+                first_item = sensor_data[0]
+                if isinstance(first_item, dict):
+                    return first_item.get("value", first_item.get("state", 0))
+                return first_item
+        return 0
 
     @property
     def native_value(self) -> StateType:
@@ -123,7 +133,10 @@ class FinanceAssistantSensor(SensorEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.coordinator.last_update_success
+        return (
+            self.coordinator.last_update_success
+            and self.coordinator.data is not None
+        )
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""

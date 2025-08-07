@@ -67,6 +67,10 @@ class FinanceAssistantCalendar(CalendarEntity):
             calendar_data = self.coordinator.data["calendars"][self.query_id]
             events = []
             
+            # Handle empty data gracefully
+            if not calendar_data or not isinstance(calendar_data, list):
+                return events
+            
             for event_data in calendar_data:
                 try:
                     # Parse event data
@@ -157,7 +161,10 @@ class FinanceAssistantCalendar(CalendarEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.coordinator.last_update_success
+        return (
+            self.coordinator.last_update_success
+            and self.coordinator.data is not None
+        )
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""

@@ -78,27 +78,39 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
                 for query in queries:
                     query_id = query["id"]
                     
-                    # Fetch sensor data for SENSOR queries
-                    if query.get("query_type") == "SENSOR":
-                        sensor_url = f"{self.base_url}{API_ENDPOINT_SENSOR.format(query_id=query_id)}"
-                        async with session.get(sensor_url) as response:
-                            if response.status == 200:
-                                sensor_data = await response.json()
-                                data["sensors"][query_id] = sensor_data
+                    try:
+                        # Fetch sensor data for SENSOR queries
+                        if query.get("query_type") == "SENSOR":
+                            sensor_url = f"{self.base_url}{API_ENDPOINT_SENSOR.format(query_id=query_id)}"
+                            async with session.get(sensor_url) as response:
+                                if response.status == 200:
+                                    sensor_data = await response.json()
+                                    data["sensors"][query_id] = sensor_data
+                                else:
+                                    _LOGGER.warning("Failed to fetch sensor data for %s: %s", query_id, response.status)
+                        
+                        # Fetch calendar data for CALENDAR queries
+                        elif query.get("query_type") == "CALENDAR":
+                            calendar_url = f"{self.base_url}{API_ENDPOINT_CALENDAR.format(query_id=query_id)}"
+                            async with session.get(calendar_url) as response:
+                                if response.status == 200:
+                                    calendar_data = await response.json()
+                                    data["calendars"][query_id] = calendar_data
+                                else:
+                                    _LOGGER.warning("Failed to fetch calendar data for %s: %s", query_id, response.status)
                     
-                    # Fetch calendar data for CALENDAR queries
-                    elif query.get("query_type") == "CALENDAR":
-                        calendar_url = f"{self.base_url}{API_ENDPOINT_CALENDAR.format(query_id=query_id)}"
-                        async with session.get(calendar_url) as response:
-                            if response.status == 200:
-                                calendar_data = await response.json()
-                                data["calendars"][query_id] = calendar_data
+                    except Exception as e:
+                        _LOGGER.error("Error fetching data for query %s: %s", query_id, e)
+                        continue
 
                 return data
 
         except aiohttp.ClientError as err:
             _LOGGER.error("Error updating Finance Assistant data: %s", err)
             raise UpdateFailed(f"Error communicating with Finance Assistant: {err}") from err
+        except Exception as err:
+            _LOGGER.error("Unexpected error updating Finance Assistant data: %s", err)
+            raise UpdateFailed(f"Unexpected error: {err}") from err
 
     async def get_sensor_data(self, query_id: str) -> Dict[str, Any]:
         """Get sensor data for a specific query."""
