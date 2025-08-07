@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-__version__ = "1.0.12"
+__version__ = "1.0.13"
 
 import voluptuous as vol
 

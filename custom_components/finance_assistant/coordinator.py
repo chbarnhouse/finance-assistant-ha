@@ -90,20 +90,24 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
                         # Fetch sensor data for SENSOR queries
                         if query.get("query_type") == "SENSOR":
                             sensor_url = f"{self.base_url}{API_ENDPOINT_SENSOR.format(query_id=query_id)}"
+                            _LOGGER.debug("Fetching sensor data from: %s", sensor_url)
                             async with session.get(sensor_url, headers=headers) as response:
                                 if response.status == 200:
                                     sensor_data = await response.json()
                                     data["sensors"][query_id] = sensor_data
+                                    _LOGGER.debug("Sensor data for %s: %s", query_id, sensor_data)
                                 else:
                                     _LOGGER.warning("Failed to fetch sensor data for %s: %s", query_id, response.status)
                         
                         # Fetch calendar data for CALENDAR queries
                         elif query.get("query_type") == "CALENDAR":
                             calendar_url = f"{self.base_url}{API_ENDPOINT_CALENDAR.format(query_id=query_id)}"
+                            _LOGGER.debug("Fetching calendar data from: %s", calendar_url)
                             async with session.get(calendar_url, headers=headers) as response:
                                 if response.status == 200:
                                     calendar_data = await response.json()
                                     data["calendars"][query_id] = calendar_data
+                                    _LOGGER.debug("Calendar data for %s: %s", query_id, calendar_data)
                                 else:
                                     _LOGGER.warning("Failed to fetch calendar data for %s: %s", query_id, response.status)
                     
@@ -111,6 +115,7 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
                         _LOGGER.error("Error fetching data for query %s: %s", query_id, e)
                         continue
 
+                _LOGGER.debug("Final coordinator data: %s", data)
                 return data
 
         except aiohttp.ClientError as err:

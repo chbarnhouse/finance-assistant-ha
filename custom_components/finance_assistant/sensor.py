@@ -65,10 +65,15 @@ class FinanceAssistantSensor(SensorEntity):
             and self.query_id in self.coordinator.data["sensors"]
         ):
             sensor_data = self.coordinator.data["sensors"][self.query_id]
+            _LOGGER.debug("Sensor %s data: %s", self.query_id, sensor_data)
+            
             # Handle different data formats
             if isinstance(sensor_data, dict):
-                return sensor_data.get("state", sensor_data.get("value", 0))
+                value = sensor_data.get("state", sensor_data.get("value", 0))
+                _LOGGER.debug("Sensor %s dict value: %s", self.query_id, value)
+                return value
             elif isinstance(sensor_data, (int, float)):
+                _LOGGER.debug("Sensor %s numeric value: %s", self.query_id, sensor_data)
                 return sensor_data
             elif isinstance(sensor_data, list) and len(sensor_data) > 0:
                 # If it's a list, calculate the total value
@@ -81,7 +86,10 @@ class FinanceAssistantSensor(SensorEntity):
                             total += value
                     elif isinstance(item, (int, float)):
                         total += item
+                _LOGGER.debug("Sensor %s list total: %s", self.query_id, total)
                 return total
+        else:
+            _LOGGER.debug("Sensor %s no data available", self.query_id)
         return 0
 
     @property
