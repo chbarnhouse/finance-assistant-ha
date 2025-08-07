@@ -71,11 +71,17 @@ class FinanceAssistantSensor(SensorEntity):
             elif isinstance(sensor_data, (int, float)):
                 return sensor_data
             elif isinstance(sensor_data, list) and len(sensor_data) > 0:
-                # If it's a list, try to get the first item's value
-                first_item = sensor_data[0]
-                if isinstance(first_item, dict):
-                    return first_item.get("value", first_item.get("state", 0))
-                return first_item
+                # If it's a list, calculate the total value
+                total = 0
+                for item in sensor_data:
+                    if isinstance(item, dict):
+                        # Handle different field names for values
+                        value = item.get("value", item.get("state", item.get("balance", 0)))
+                        if isinstance(value, (int, float)):
+                            total += value
+                    elif isinstance(item, (int, float)):
+                        total += item
+                return total
         return 0
 
     @property
@@ -96,7 +102,12 @@ class FinanceAssistantSensor(SensorEntity):
     @property
     def unit_of_measurement(self) -> str | None:
         """Return the unit of measurement."""
-        # Determine unit based on query type
+        # Use the unit from the query configuration, fallback to defaults
+        unit = self.query.get("ha_unit_of_measurement")
+        if unit:
+            return unit
+        
+        # Fallback to defaults based on data source
         if self.query.get("data_source") == "TRANSACTIONS":
             return "USD"  # Default to USD for transaction amounts
         elif self.query.get("data_source") == "ACCOUNTS":
