@@ -5,6 +5,13 @@ All notable changes to the Finance Assistant Home Assistant Integration will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2025-08-07
+
+### Fixed
+
+- Force HACS version detection with proper GitHub release
+- Integration now properly displays semantic versioning
+
 ## [1.0.3] - 2025-08-07
 
 ### Fixed
