@@ -33,17 +33,14 @@ This integration connects Home Assistant to the Finance Assistant standalone ser
 ### Prerequisites
 
 1. **Finance Assistant Service**: You need a running Finance Assistant service (standalone deployment)
-2. **API Key**: Generate an API key in your Finance Assistant service
-3. **Network Access**: Home Assistant must be able to reach your Finance Assistant service
+2. **Network Access**: Home Assistant must be able to reach your Finance Assistant service
 
 ### Setup Steps
 
-1. **Get API Key**: In your Finance Assistant web interface, go to Settings and generate an API key
-2. **Add Integration**: In Home Assistant, go to **Settings** → **Devices & Services** → **Add Integration**
-3. **Configure Connection**:
+1. **Add Integration**: In Home Assistant, go to **Settings** → **Devices & Services** → **Add Integration**
+2. **Configure Connection**:
    - **Host**: IP address or hostname of your Finance Assistant service
    - **Port**: Port number (default: 8080)
-   - **API Key**: Your Finance Assistant API key
    - **Use SSL**: Enable if using HTTPS
    - **Scan Interval**: How often to refresh data (default: 300 seconds)
 
@@ -54,7 +51,6 @@ This integration connects Home Assistant to the Finance Assistant standalone ser
 finance_assistant:
   host: 192.168.1.113
   port: 8080
-  api_key: your-api-key-here
   ssl: false
   scan_interval: 300
 ```
@@ -113,12 +109,7 @@ Calendar entities show:
    - Verify host and port are correct
    - Ensure network connectivity
 
-2. **Invalid API Key**
-
-   - Generate a new API key in Finance Assistant
-   - Check that the API key is correct
-
-3. **No Entities Created**
+2. **No Entities Created**
    - Ensure you have queries with "Sensor" or "Calendar" output types
    - Check that queries are active
    - Verify the integration is properly configured
@@ -152,4 +143,6 @@ For issues and questions:
 
 ## Version History
 
+- **1.0.0**: Initial stable release with authentication fixes and semantic versioning
+- **0.14.64**: Fixed authentication and query_type field mapping
 - **0.14.63**: Initial release with sensor and calendar support
