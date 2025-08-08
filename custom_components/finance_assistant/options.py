@@ -1,4 +1,4 @@
-"""Config flow for Finance Assistant integration."""
+"""Options flow for Finance Assistant integration."""
 from __future__ import annotations
 
 import logging
@@ -6,7 +6,7 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant import config_entries
+from homeassistant.config_entries import ConfigEntry, OptionsFlow
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_API_KEY, CONF_SSL
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
@@ -23,31 +23,17 @@ from .coordinator import FinanceAssistantDataUpdateCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 
-class FinanceAssistantConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Finance Assistant."""
+class FinanceAssistantOptionsFlow(OptionsFlow):
+    """Handle options flow for Finance Assistant."""
 
-    VERSION = 4
+    def __init__(self, config_entry: ConfigEntry) -> None:
+        """Initialize options flow."""
+        self.config_entry = config_entry
 
-    async def async_step_reconfigure(
+    async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle reconfiguration."""
-        return await self.async_step_user(user_input)
-
-    @staticmethod
-    async def async_get_options_flow(
-        config_entry: config_entries.ConfigEntry,
-    ) -> config_entries.OptionsFlow:
-        """Create the options flow."""
-        from .options import FinanceAssistantOptionsFlow
-        return FinanceAssistantOptionsFlow(config_entry)
-
-
-
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle the initial step."""
+        """Manage the options."""
         errors = {}
 
         if user_input is not None:
@@ -62,10 +48,12 @@ class FinanceAssistantConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     )
                     await coordinator.async_validate_input()
 
-                    return self.async_create_entry(
-                        title=f"Finance Assistant ({user_input[CONF_HOST]}:{user_input[CONF_PORT]})",
-                        data=user_input,
+                    # Update the config entry
+                    self.hass.config_entries.async_update_entry(
+                        self.config_entry, data=user_input
                     )
+
+                    return self.async_create_entry(title="", data=user_input)
                 except CannotConnect:
                     errors["base"] = "cannot_connect"
                 except InvalidAuth:
@@ -74,15 +62,18 @@ class FinanceAssistantConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     _LOGGER.exception("Unexpected exception")
                     errors["base"] = "unknown"
 
+        # Get current values
+        current_data = self.config_entry.data
+
         return self.async_show_form(
-            step_id="user",
+            step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_HOST): str,
-                    vol.Optional(CONF_PORT, default=DEFAULT_PORT): int,
-                    vol.Required(CONF_API_KEY): str,
-                    vol.Optional(CONF_SSL, default=False): bool,
-                    vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): int,
+                    vol.Required(CONF_HOST, default=current_data.get(CONF_HOST, "")): str,
+                    vol.Optional(CONF_PORT, default=current_data.get(CONF_PORT, DEFAULT_PORT)): int,
+                    vol.Required(CONF_API_KEY, default=current_data.get(CONF_API_KEY, "")): str,
+                    vol.Optional(CONF_SSL, default=current_data.get(CONF_SSL, False)): bool,
+                    vol.Optional(CONF_SCAN_INTERVAL, default=current_data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)): int,
                 }
             ),
             errors=errors,

@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-__version__ = "1.0.21"
+__version__ = "1.0.23"
 
 import voluptuous as vol
 
@@ -50,4 +50,30 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         hass.data[DOMAIN].pop(entry.entry_id)
 
-    return unload_ok 
+    return unload_ok
+
+
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+    """Migrate old entry."""
+    _LOGGER.info("Migrating from version %s", config_entry.version)
+
+    if config_entry.version == 1:
+        # Add new fields with defaults
+        new = {**config_entry.data}
+        new[CONF_SCAN_INTERVAL] = DEFAULT_SCAN_INTERVAL
+        
+        config_entry.version = 2
+        hass.config_entries.async_update_entry(config_entry, data=new)
+
+    if config_entry.version == 2:
+        # Migrate to version 3
+        config_entry.version = 3
+        hass.config_entries.async_update_entry(config_entry)
+
+    if config_entry.version == 3:
+        # Migrate to version 4
+        config_entry.version = 4
+        hass.config_entries.async_update_entry(config_entry)
+
+    _LOGGER.info("Migration to version %s successful", config_entry.version)
+    return True 
