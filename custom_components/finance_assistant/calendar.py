@@ -107,8 +107,12 @@ class FinanceAssistantCalendar(CalendarEntity):
                                 end_date.get("day")
                             )
                     
+                    # Ensure we have both start and end dates
+                    if not start_date:
+                        continue  # Skip events without start date
+                    
                     # If no end date, set to start date + 1 day
-                    if start_date and not end_date:
+                    if not end_date:
                         end_date = start_date + timedelta(days=1)
                     
                     event = CalendarEvent(
