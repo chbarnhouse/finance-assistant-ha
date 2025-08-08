@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Remove redundant "(Required)" text from API key field label
-- Keep asterisk (*) to indicate required field
+- Keep asterisk (\*) to indicate required field
 
 ## [1.0.20] - 2025-08-07
 

@@ -60,7 +60,11 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Validating connection with API key")
                 
                 async with session.get(url, headers=headers) as response:
-                    if response.status != 200:
+                    if response.status == 401:
+                        _LOGGER.error("Invalid API key")
+                        raise InvalidAuth()
+                    elif response.status != 200:
+                        _LOGGER.error("Connection failed with status: %s", response.status)
                         raise CannotConnect()
         except aiohttp.ClientError as err:
             _LOGGER.error("Error connecting to Finance Assistant: %s", err)

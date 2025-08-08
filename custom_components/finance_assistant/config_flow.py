@@ -26,7 +26,7 @@ _LOGGER = logging.getLogger(__name__)
 class FinanceAssistantConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Finance Assistant."""
 
-    VERSION = 2
+    VERSION = 3
 
 
 

@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Finance Assistant Configuration",
-        "description": "Configure your Finance Assistant connection. {api_key_note}",
+        "description": "Configure your Finance Assistant connection.",
         "data": {
           "host": "Host",
           "port": "Port",
