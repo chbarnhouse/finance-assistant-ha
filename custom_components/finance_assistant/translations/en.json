@@ -7,7 +7,7 @@
         "data": {
           "host": "Host",
           "port": "Port",
-          "api_key": "API Key (Required)",
+          "api_key": "API Key",
           "ssl": "Use SSL",
           "scan_interval": "Scan Interval (seconds)"
         }

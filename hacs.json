@@ -2,5 +2,5 @@
   "name": "Finance Assistant",
   "render_readme": true,
   "homeassistant": "2023.8.0",
-  "version": "1.0.20"
+  "version": "1.0.21"
 }
