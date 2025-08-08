@@ -9,6 +9,7 @@ import aiohttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.exceptions import HomeAssistantError
 
 from .const import (
     CONF_HOST,
@@ -165,9 +166,9 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
             return []
 
 
-class CannotConnect(Exception):
+class CannotConnect(HomeAssistantError):
     """Error to indicate we cannot connect."""
 
 
-class InvalidAuth(Exception):
+class InvalidAuth(HomeAssistantError):
     """Error to indicate there is invalid auth.""" 
