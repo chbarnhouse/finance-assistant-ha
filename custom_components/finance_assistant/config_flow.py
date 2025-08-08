@@ -28,6 +28,13 @@ class FinanceAssistantConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 2
 
+    def __init__(self):
+        """Initialize the config flow."""
+        super().__init__()
+        # Force reload of data schema by clearing any cached entries
+        if hasattr(self, "_data_schema"):
+            delattr(self, "_data_schema")
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
@@ -58,18 +65,25 @@ class FinanceAssistantConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     _LOGGER.exception("Unexpected exception")
                     errors["base"] = "unknown"
 
+        # Define schema with required API key
+        schema = {
+            vol.Required(CONF_HOST): str,
+            vol.Optional(CONF_PORT, default=DEFAULT_PORT): int,
+            vol.Required(CONF_API_KEY): {
+                vol.Required("value"): str,
+                vol.Optional("description"): "API key is required for authentication",
+            },
+            vol.Optional(CONF_SSL, default=False): bool,
+            vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): int,
+        }
+
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_HOST): str,
-                    vol.Optional(CONF_PORT, default=DEFAULT_PORT): int,
-                    vol.Required(CONF_API_KEY, description="Your Finance Assistant API key"): str,
-                    vol.Optional(CONF_SSL, default=False): bool,
-                    vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): int,
-                }
-            ),
+            data_schema=vol.Schema(schema),
             errors=errors,
+            description_placeholders={
+                "api_key_note": "API key is required for authentication",
+            },
         )
 
 
