@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-__version__ = "1.0.26"
+__version__ = "1.0.27"
 
 import voluptuous as vol
 
@@ -74,6 +74,11 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
         # Migrate to version 4
         config_entry.version = 4
         hass.config_entries.async_update_entry(config_entry)
+
+    # Ensure we support version 4 (current config flow version)
+    if config_entry.version == 4:
+        # Version 4 is supported, no migration needed
+        pass
 
     _LOGGER.info("Migration to version %s successful", config_entry.version)
     return True 
