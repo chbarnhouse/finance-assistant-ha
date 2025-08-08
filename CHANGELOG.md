@@ -5,6 +5,14 @@ All notable changes to the Finance Assistant Home Assistant Integration will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.20] - 2025-08-07
+
+### Fixed
+
+- Fix 500 Internal Server Error in config flow by reverting to simple schema
+- Keep API key as required field but use standard Home Assistant schema format
+- Remove complex schema structure that was causing server errors
+
 ## [1.0.19] - 2025-08-07
 
 ### Changed
