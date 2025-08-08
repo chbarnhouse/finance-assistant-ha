@@ -18,7 +18,7 @@ from .const import (
     DEFAULT_PORT,
     DOMAIN,
 )
-from .coordinator import FinanceAssistantDataUpdateCoordinator
+from .coordinator import FinanceAssistantDataUpdateCoordinator, CannotConnect, InvalidAuth
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -80,9 +80,4 @@ class FinanceAssistantOptionsFlow(OptionsFlow):
         )
 
 
-class CannotConnect(HomeAssistantError):
-    """Error to indicate we cannot connect."""
-
-
-class InvalidAuth(HomeAssistantError):
-    """Error to indicate there is invalid auth.""" 
+ 
