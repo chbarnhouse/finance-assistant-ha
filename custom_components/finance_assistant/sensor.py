@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from homeassistant.components.sensor import SensorEntity, SensorStateClass, SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -96,6 +96,12 @@ class FinanceAssistantSensor(SensorEntity):
     def native_value(self) -> StateType:
         """Return the native value of the sensor."""
         return self.state
+
+    @property
+    def device_class(self) -> SensorDeviceClass | None:
+        """Return the device class of the sensor."""
+        # Use monetary device class for financial sensors
+        return SensorDeviceClass.MONETARY
 
     @property
     def state_class(self) -> SensorStateClass | None:
