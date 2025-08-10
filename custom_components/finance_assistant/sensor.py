@@ -16,7 +16,6 @@ from .const import (
     ATTR_QUERY_NAME,
     ATTR_QUERY_DESCRIPTION,
     ATTR_LAST_UPDATED,
-    ATTR_DATA_SOURCE,
     ATTR_QUERY_TYPE,
     DEVICE_INFO,
     DOMAIN,
@@ -37,7 +36,7 @@ async def async_setup_entry(
     sensors = []
     if coordinator.data and "queries" in coordinator.data:
         for query in coordinator.data["queries"]:
-            if query.get("query_type") == "SENSOR":
+            if query.get("output_type") == "SENSOR":
                 sensor = FinanceAssistantSensor(coordinator, query)
                 sensors.append(sensor)
 
@@ -107,9 +106,9 @@ class FinanceAssistantSensor(SensorEntity):
     def state_class(self) -> SensorStateClass | None:
         """Return the state class of the sensor."""
         # Determine state class based on query type
-        if self.query.get("data_source") == "TRANSACTIONS":
+        if self.query.get("query_type") == "TRANSACTIONS":
             return SensorStateClass.TOTAL
-        elif self.query.get("data_source") == "ACCOUNTS":
+        elif self.query.get("query_type") == "ACCOUNTS":
             return SensorStateClass.MEASUREMENT
         return None
 
@@ -121,10 +120,10 @@ class FinanceAssistantSensor(SensorEntity):
         if unit:
             return unit
         
-        # Fallback to defaults based on data source
-        if self.query.get("data_source") == "TRANSACTIONS":
+        # Fallback to defaults based on query type
+        if self.query.get("query_type") == "TRANSACTIONS":
             return "USD"  # Default to USD for transaction amounts
-        elif self.query.get("data_source") == "ACCOUNTS":
+        elif self.query.get("query_type") == "ACCOUNTS":
             return "USD"  # Default to USD for account balances
         return None
 
@@ -135,7 +134,6 @@ class FinanceAssistantSensor(SensorEntity):
             ATTR_QUERY_ID: self.query_id,
             ATTR_QUERY_NAME: self.query["name"],
             ATTR_QUERY_DESCRIPTION: self.query.get("description", ""),
-            ATTR_DATA_SOURCE: self.query.get("data_source", ""),
             ATTR_QUERY_TYPE: self.query.get("query_type", ""),
         }
 

@@ -16,7 +16,6 @@ from .const import (
     ATTR_QUERY_NAME,
     ATTR_QUERY_DESCRIPTION,
     ATTR_LAST_UPDATED,
-    ATTR_DATA_SOURCE,
     ATTR_QUERY_TYPE,
     DEVICE_INFO,
     DOMAIN,
@@ -37,7 +36,7 @@ async def async_setup_entry(
     calendars = []
     if coordinator.data and "queries" in coordinator.data:
         for query in coordinator.data["queries"]:
-            if query.get("query_type") == "CALENDAR":
+            if query.get("output_type") == "CALENDAR":
                 calendar = FinanceAssistantCalendar(coordinator, query)
                 calendars.append(calendar)
 
@@ -159,7 +158,6 @@ class FinanceAssistantCalendar(CalendarEntity):
             ATTR_QUERY_ID: self.query_id,
             ATTR_QUERY_NAME: self.query["name"],
             ATTR_QUERY_DESCRIPTION: self.query.get("description", ""),
-            ATTR_DATA_SOURCE: self.query.get("data_source", ""),
             ATTR_QUERY_TYPE: self.query.get("query_type", ""),
         }
 

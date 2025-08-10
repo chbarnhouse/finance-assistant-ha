@@ -94,7 +94,7 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
                     
                     try:
                         # Fetch sensor data for SENSOR queries
-                        if query.get("query_type") == "SENSOR":
+                        if query.get("output_type") == "SENSOR":
                             sensor_url = f"{self.base_url}{API_ENDPOINT_SENSOR.format(query_id=query_id)}"
                             _LOGGER.debug("Fetching sensor data from: %s", sensor_url)
                             async with session.get(sensor_url, headers=headers) as response:
@@ -106,7 +106,7 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
                                     _LOGGER.warning("Failed to fetch sensor data for %s: %s", query_id, response.status)
                         
                         # Fetch calendar data for CALENDAR queries
-                        elif query.get("query_type") == "CALENDAR":
+                        elif query.get("output_type") == "CALENDAR":
                             calendar_url = f"{self.base_url}{API_ENDPOINT_CALENDAR.format(query_id=query_id)}"
                             _LOGGER.debug("Fetching calendar data from: %s", calendar_url)
                             async with session.get(calendar_url, headers=headers) as response:
