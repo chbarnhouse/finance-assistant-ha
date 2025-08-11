@@ -32,5 +32,4 @@ DEVICE_INFO = {
     "name": "Finance Assistant",
     "manufacturer": "Finance Assistant",
     "model": "Finance Assistant",
-                    "sw_version": "1.0.21",
 } 

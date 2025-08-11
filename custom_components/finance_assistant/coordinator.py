@@ -87,7 +87,7 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
                     queries = await response.json()
 
                 # Fetch dashboard data for real-time financial information
-                dashboard_url = f"{self.base_url}/api/dashboard/"
+                dashboard_url = f"{self.base_url}/api/ha/dashboard/"
                 dashboard_data = {}
                 try:
                     async with session.get(dashboard_url, headers=headers) as response:
