@@ -78,59 +78,101 @@ class FinanceAssistantCalendar(CalendarEntity):
             
             # Handle empty data gracefully
             if not calendar_data or not isinstance(calendar_data, list):
+                _LOGGER.debug("Calendar %s: No data or invalid format", self.query_id)
                 return events
+            
+            _LOGGER.debug("Calendar %s: Processing %d events", self.query_id, len(calendar_data))
             
             for event_data in calendar_data:
                 try:
-                    # Parse event data
-                    start_date = event_data.get("dtstart")
-                    if start_date:
-                        if isinstance(start_date, str):
-                            start_date = dt_util.parse_datetime(start_date)
-                        elif isinstance(start_date, dict):
-                            # Handle date dict format
-                            start_date = datetime(
-                                start_date.get("year"),
-                                start_date.get("month"),
-                                start_date.get("day")
-                            )
-                    
-                    end_date = event_data.get("dtend")
-                    if end_date:
-                        if isinstance(end_date, str):
-                            end_date = dt_util.parse_datetime(end_date)
-                        elif isinstance(end_date, dict):
-                            end_date = datetime(
-                                end_date.get("year"),
-                                end_date.get("month"),
-                                end_date.get("day")
-                            )
-                    
-                    # Ensure we have both start and end dates
+                    # Parse event data with better error handling
+                    start_date = self._parse_date(event_data.get("dtstart") or event_data.get("start"))
                     if not start_date:
-                        continue  # Skip events without start date
+                        _LOGGER.warning("Calendar %s: Event missing start date, skipping", self.query_id)
+                        continue
                     
-                    # If no end date, set to start date + 1 day
+                    # Parse end date, with fallback to start date + 1 day
+                    end_date = self._parse_date(event_data.get("dtend") or event_data.get("end"))
                     if not end_date:
+                        # If no end date, set to start date + 1 day (default duration)
                         end_date = start_date + timedelta(days=1)
+                        _LOGGER.debug("Calendar %s: Event missing end date, using start + 1 day", self.query_id)
                     
+                    # Ensure end date is after start date
+                    if end_date <= start_date:
+                        end_date = start_date + timedelta(days=1)
+                        _LOGGER.debug("Calendar %s: End date <= start date, adjusting to start + 1 day", self.query_id)
+                    
+                    # Create calendar event with required fields
                     event = CalendarEvent(
-                        summary=event_data.get("summary", ""),
+                        summary=event_data.get("summary", event_data.get("title", "Financial Event")),
                         description=event_data.get("description", ""),
                         location=event_data.get("location", ""),
                         start=start_date,
-                        end=end_date,
-                        uid=event_data.get("uid", f"{self.query_id}_{start_date}"),
+                        end=end_date,  # Always ensure end is present
+                        uid=event_data.get("uid", f"{self.query_id}_{start_date.isoformat()}"),
                     )
                     events.append(event)
+                    _LOGGER.debug("Calendar %s: Successfully parsed event: %s", self.query_id, event.summary)
                     
                 except Exception as e:
-                    _LOGGER.error("Error parsing calendar event: %s", e)
+                    _LOGGER.error("Calendar %s: Error parsing calendar event: %s", self.query_id, e)
+                    _LOGGER.debug("Calendar %s: Problematic event data: %s", self.query_id, event_data)
                     continue
             
+            _LOGGER.debug("Calendar %s: Successfully parsed %d events", self.query_id, len(events))
             return events
         
         return []
+
+    def _parse_date(self, date_value) -> datetime | None:
+        """Parse date value from various formats."""
+        if not date_value:
+            return None
+        
+        try:
+            if isinstance(date_value, str):
+                # Try to parse as ISO format first
+                parsed = dt_util.parse_datetime(date_value)
+                if parsed:
+                    return parsed
+                
+                # Try other common formats
+                for fmt in ["%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"]:
+                    try:
+                        return datetime.strptime(date_value, fmt)
+                    except ValueError:
+                        continue
+                
+                _LOGGER.warning("Calendar %s: Could not parse date string: %s", self.query_id, date_value)
+                return None
+                
+            elif isinstance(date_value, dict):
+                # Handle date dict format
+                year = date_value.get("year")
+                month = date_value.get("month", 1)
+                day = date_value.get("day", 1)
+                hour = date_value.get("hour", 0)
+                minute = date_value.get("minute", 0)
+                second = date_value.get("second", 0)
+                
+                if year and month and day:
+                    return datetime(year, month, day, hour, minute, second)
+                else:
+                    _LOGGER.warning("Calendar %s: Incomplete date dict: %s", self.query_id, date_value)
+                    return None
+                    
+            elif isinstance(date_value, (int, float)):
+                # Handle timestamp
+                return datetime.fromtimestamp(date_value)
+                
+            else:
+                _LOGGER.warning("Calendar %s: Unsupported date format: %s (%s)", self.query_id, date_value, type(date_value))
+                return None
+                
+        except Exception as e:
+            _LOGGER.error("Calendar %s: Error parsing date %s: %s", self.query_id, date_value, e)
+            return None
 
     async def async_get_events(
         self, hass: HomeAssistant, start_date: datetime, end_date: datetime

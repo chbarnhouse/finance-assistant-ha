@@ -66,30 +66,127 @@ class FinanceAssistantSensor(SensorEntity):
             sensor_data = self.coordinator.data["sensors"][self.query_id]
             _LOGGER.debug("Sensor %s data: %s", self.query_id, sensor_data)
             
-            # Handle different data formats
-            if isinstance(sensor_data, dict):
-                value = sensor_data.get("state", sensor_data.get("value", 0))
-                _LOGGER.debug("Sensor %s dict value: %s", self.query_id, value)
-                return value
-            elif isinstance(sensor_data, (int, float)):
-                _LOGGER.debug("Sensor %s numeric value: %s", self.query_id, sensor_data)
-                return sensor_data
-            elif isinstance(sensor_data, list) and len(sensor_data) > 0:
-                # If it's a list, calculate the total value
-                total = 0
-                for item in sensor_data:
-                    if isinstance(item, dict):
-                        # Handle different field names for values
-                        value = item.get("value", item.get("state", item.get("balance", 0)))
-                        if isinstance(value, (int, float)):
-                            total += value
-                    elif isinstance(item, (int, float)):
-                        total += item
-                _LOGGER.debug("Sensor %s list total: %s", self.query_id, total)
-                return total
+            # Handle different data formats with better error handling
+            try:
+                if isinstance(sensor_data, dict):
+                    # Try multiple possible value fields
+                    value = sensor_data.get("state") or sensor_data.get("value") or sensor_data.get("amount") or sensor_data.get("balance")
+                    if value is not None:
+                        # Convert to numeric if possible
+                        numeric_value = self._convert_to_numeric(value)
+                        if numeric_value is not None:
+                            _LOGGER.debug("Sensor %s dict value: %s", self.query_id, numeric_value)
+                            return numeric_value
+                    
+                    # If no direct value, try to calculate from nested data
+                    calculated_value = self._calculate_from_dict(sensor_data)
+                    if calculated_value is not None:
+                        _LOGGER.debug("Sensor %s calculated value: %s", self.query_id, calculated_value)
+                        return calculated_value
+                    
+                    _LOGGER.warning("Sensor %s: Could not extract value from dict", self.query_id)
+                    return 0
+                    
+                elif isinstance(sensor_data, (int, float)):
+                    _LOGGER.debug("Sensor %s numeric value: %s", self.query_id, sensor_data)
+                    return sensor_data
+                    
+                elif isinstance(sensor_data, list) and len(sensor_data) > 0:
+                    # If it's a list, calculate the total value
+                    total = self._calculate_list_total(sensor_data)
+                    _LOGGER.debug("Sensor %s list total: %s", self.query_id, total)
+                    return total
+                    
+                elif isinstance(sensor_data, str):
+                    # Try to parse string as numeric
+                    numeric_value = self._convert_to_numeric(sensor_data)
+                    if numeric_value is not None:
+                        _LOGGER.debug("Sensor %s string value: %s", self.query_id, numeric_value)
+                        return numeric_value
+                    _LOGGER.warning("Sensor %s: Could not parse string value: %s", self.query_id, sensor_data)
+                    return 0
+                    
+                else:
+                    _LOGGER.warning("Sensor %s: Unsupported data type: %s", self.query_id, type(sensor_data))
+                    return 0
+                    
+            except Exception as e:
+                _LOGGER.error("Sensor %s: Error processing data: %s", self.query_id, e)
+                return 0
         else:
             _LOGGER.debug("Sensor %s no data available", self.query_id)
         return 0
+
+    def _convert_to_numeric(self, value) -> float | None:
+        """Convert value to numeric if possible."""
+        if value is None:
+            return None
+            
+        try:
+            if isinstance(value, (int, float)):
+                return float(value)
+            elif isinstance(value, str):
+                # Remove common currency symbols and whitespace
+                cleaned = value.replace('$', '').replace(',', '').replace(' ', '').strip()
+                if cleaned:
+                    return float(cleaned)
+            return None
+        except (ValueError, TypeError):
+            return None
+
+    def _calculate_from_dict(self, data: dict) -> float | None:
+        """Calculate value from dictionary data."""
+        try:
+            # Look for common financial fields
+            financial_fields = ['amount', 'balance', 'total', 'sum', 'value', 'state']
+            for field in financial_fields:
+                if field in data:
+                    value = self._convert_to_numeric(data[field])
+                    if value is not None:
+                        return value
+            
+            # If no direct financial fields, try to sum numeric values
+            total = 0
+            count = 0
+            for key, value in data.items():
+                if isinstance(value, (int, float)):
+                    total += value
+                    count += 1
+                elif isinstance(value, str):
+                    numeric_value = self._convert_to_numeric(value)
+                    if numeric_value is not None:
+                        total += numeric_value
+                        count += 1
+            
+            return total if count > 0 else None
+            
+        except Exception as e:
+            _LOGGER.debug("Sensor %s: Error calculating from dict: %s", self.query_id, e)
+            return None
+
+    def _calculate_list_total(self, data_list: list) -> float:
+        """Calculate total from list of data items."""
+        try:
+            total = 0
+            for item in data_list:
+                if isinstance(item, dict):
+                    # Handle different field names for values
+                    value = item.get("value") or item.get("state") or item.get("balance") or item.get("amount")
+                    if value is not None:
+                        numeric_value = self._convert_to_numeric(value)
+                        if numeric_value is not None:
+                            total += numeric_value
+                elif isinstance(item, (int, float)):
+                    total += item
+                elif isinstance(item, str):
+                    numeric_value = self._convert_to_numeric(item)
+                    if numeric_value is not None:
+                        total += numeric_value
+            
+            return total
+        except Exception as e:
+            _LOGGER.error("Sensor %s: Error calculating list total: %s", self.query_id, e)
+            return 0
 
     @property
     def native_value(self) -> StateType:

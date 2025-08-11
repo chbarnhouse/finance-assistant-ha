@@ -88,40 +88,47 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
 
                 # Fetch data for each query
                 data = {"queries": queries, "sensors": {}, "calendars": {}}
+                _LOGGER.debug("Found %d queries to process", len(queries))
                 
                 for query in queries:
                     query_id = query["id"]
+                    query_name = query.get("name", "Unknown")
+                    output_type = query.get("output_type", "Unknown")
+                    _LOGGER.debug("Processing query %s (%s): %s", query_id, query_name, output_type)
                     
                     try:
                         # Fetch sensor data for SENSOR queries
-                        if query.get("output_type") == "SENSOR":
+                        if output_type == "SENSOR":
                             sensor_url = f"{self.base_url}{API_ENDPOINT_SENSOR.format(query_id=query_id)}"
                             _LOGGER.debug("Fetching sensor data from: %s", sensor_url)
                             async with session.get(sensor_url, headers=headers) as response:
                                 if response.status == 200:
                                     sensor_data = await response.json()
                                     data["sensors"][query_id] = sensor_data
-                                    _LOGGER.debug("Sensor data for %s: %s", query_id, sensor_data)
+                                    _LOGGER.debug("Sensor data for %s (%s): %s", query_id, query_name, sensor_data)
                                 else:
-                                    _LOGGER.warning("Failed to fetch sensor data for %s: %s", query_id, response.status)
+                                    _LOGGER.warning("Failed to fetch sensor data for %s (%s): %s", query_id, query_name, response.status)
                         
                         # Fetch calendar data for CALENDAR queries
-                        elif query.get("output_type") == "CALENDAR":
+                        elif output_type == "CALENDAR":
                             calendar_url = f"{self.base_url}{API_ENDPOINT_CALENDAR.format(query_id=query_id)}"
                             _LOGGER.debug("Fetching calendar data from: %s", calendar_url)
                             async with session.get(calendar_url, headers=headers) as response:
                                 if response.status == 200:
                                     calendar_data = await response.json()
                                     data["calendars"][query_id] = calendar_data
-                                    _LOGGER.debug("Calendar data for %s: %s", query_id, calendar_data)
+                                    _LOGGER.debug("Calendar data for %s (%s): %s", query_id, query_name, calendar_data)
                                 else:
-                                    _LOGGER.warning("Failed to fetch calendar data for %s: %s", query_id, response.status)
+                                    _LOGGER.warning("Failed to fetch calendar data for %s (%s): %s", query_id, query_name, response.status)
+                        else:
+                            _LOGGER.debug("Skipping query %s (%s): unknown output type %s", query_id, query_name, output_type)
                     
                     except Exception as e:
-                        _LOGGER.error("Error fetching data for query %s: %s", query_id, e)
+                        _LOGGER.error("Error fetching data for query %s (%s): %s", query_id, query_name, e)
                         continue
 
-                _LOGGER.debug("Final coordinator data: %s", data)
+                _LOGGER.debug("Final coordinator data summary: %d queries, %d sensors, %d calendars", 
+                             len(data["queries"]), len(data["sensors"]), len(data["calendars"]))
                 return data
 
         except aiohttp.ClientError as err:
