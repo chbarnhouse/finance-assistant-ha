@@ -98,78 +98,152 @@ class FinanceAssistantCalendar(CalendarEntity):
                         end_date = start_date + timedelta(days=1)
                         _LOGGER.debug("Calendar %s: Event missing end date, using start + 1 day", self.query_id)
                     
-                    # Ensure end date is after start date
-                    if end_date <= start_date:
-                        end_date = start_date + timedelta(days=1)
-                        _LOGGER.debug("Calendar %s: End date <= start date, adjusting to start + 1 day", self.query_id)
-                    
-                    # Create calendar event with required fields
+                    # Create calendar event with enhanced attributes
                     event = CalendarEvent(
-                        summary=event_data.get("summary", event_data.get("title", "Financial Event")),
-                        description=event_data.get("description", ""),
-                        location=event_data.get("location", ""),
+                        summary=self._get_event_summary(event_data),
                         start=start_date,
-                        end=end_date,  # Always ensure end is present
-                        uid=event_data.get("uid", f"{self.query_id}_{start_date.isoformat()}"),
+                        end=end_date,
+                        description=self._get_event_description(event_data),
+                        location=self._get_event_location(event_data),
+                        uid=str(event_data.get("id", "")),
                     )
+                    
                     events.append(event)
-                    _LOGGER.debug("Calendar %s: Successfully parsed event: %s", self.query_id, event.summary)
                     
                 except Exception as e:
-                    _LOGGER.error("Calendar %s: Error parsing calendar event: %s", self.query_id, e)
-                    _LOGGER.debug("Calendar %s: Problematic event data: %s", self.query_id, event_data)
+                    _LOGGER.error("Calendar %s: Error processing event %s: %s", self.query_id, event_data, e)
                     continue
             
-            _LOGGER.debug("Calendar %s: Successfully parsed %d events", self.query_id, len(events))
+            # Sort events by start date
+            events.sort(key=lambda x: x.start)
+            _LOGGER.debug("Calendar %s: Successfully processed %d events", self.query_id, len(events))
             return events
         
         return []
 
+    def _get_event_summary(self, event_data: dict) -> str:
+        """Extract event summary from event data."""
+        # Try multiple possible summary fields
+        summary_fields = ["summary", "title", "name", "description", "memo"]
+        
+        for field in summary_fields:
+            if field in event_data and event_data[field]:
+                summary = str(event_data[field])
+                if summary.strip():
+                    return summary.strip()
+        
+        # Fallback to query name if no summary found
+        return f"{self.query.get('name', 'Finance Event')}"
+
+    def _get_event_description(self, event_data: dict) -> str | None:
+        """Extract event description from event data."""
+        # Try multiple possible description fields
+        desc_fields = ["description", "memo", "notes", "details", "summary"]
+        
+        for field in desc_fields:
+            if field in event_data and event_data[field]:
+                desc = str(event_data[field])
+                if desc.strip():
+                    return desc.strip()
+        
+        return None
+
+    def _get_event_location(self, event_data: dict) -> str | None:
+        """Extract event location from event data."""
+        # Try multiple possible location fields
+        location_fields = ["location", "place", "address", "venue"]
+        
+        for field in location_fields:
+            if field in event_data and event_data[field]:
+                location = str(event_data[field])
+                if location.strip():
+                    return location.strip()
+        
+        return None
+
     def _parse_date(self, date_value) -> datetime | None:
-        """Parse date value from various formats."""
+        """Parse date from various formats with enhanced error handling."""
         if not date_value:
             return None
         
         try:
+            # Handle datetime objects directly
+            if isinstance(date_value, datetime):
+                return date_value
+            
+            # Handle date objects
+            if hasattr(date_value, 'date'):  # datetime.date objects
+                return datetime.combine(date_value, datetime.min.time())
+            
+            # Handle string dates
             if isinstance(date_value, str):
-                # Try to parse as ISO format first
-                parsed = dt_util.parse_datetime(date_value)
-                if parsed:
-                    return parsed
+                # Remove any timezone info for now (can be enhanced later)
+                date_str = date_value.split('+')[0].split('Z')[0].strip()
                 
-                # Try other common formats
-                for fmt in ["%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"]:
+                # Try multiple date formats
+                date_formats = [
+                    "%Y-%m-%dT%H:%M:%S",      # ISO format without timezone
+                    "%Y-%m-%d %H:%M:%S",      # Space-separated format
+                    "%Y-%m-%dT%H:%M",         # ISO format without seconds
+                    "%Y-%m-%d %H:%M",         # Space-separated without seconds
+                    "%Y-%m-%d",               # Date only
+                    "%m/%d/%Y",               # US format
+                    "%d/%m/%Y",               # European format
+                    "%Y-%m-%d %H:%M:%S.%f",  # With microseconds
+                ]
+                
+                for fmt in date_formats:
                     try:
-                        return datetime.strptime(date_value, fmt)
+                        return datetime.strptime(date_str, fmt)
                     except ValueError:
                         continue
                 
+                # If no format works, try to parse with dateutil (if available)
+                try:
+                    from dateutil import parser
+                    return parser.parse(date_str)
+                except ImportError:
+                    pass
+                
                 _LOGGER.warning("Calendar %s: Could not parse date string: %s", self.query_id, date_value)
                 return None
-                
-            elif isinstance(date_value, dict):
-                # Handle date dict format
-                year = date_value.get("year")
-                month = date_value.get("month", 1)
-                day = date_value.get("day", 1)
-                hour = date_value.get("hour", 0)
-                minute = date_value.get("minute", 0)
-                second = date_value.get("second", 0)
-                
-                if year and month and day:
-                    return datetime(year, month, day, hour, minute, second)
-                else:
-                    _LOGGER.warning("Calendar %s: Incomplete date dict: %s", self.query_id, date_value)
-                    return None
+            
+            # Handle numeric timestamps
+            if isinstance(date_value, (int, float)):
+                try:
+                    # Try as Unix timestamp (seconds since epoch)
+                    if date_value > 1e10:  # Likely milliseconds
+                        date_value = date_value / 1000
+                    return datetime.fromtimestamp(date_value)
+                except (ValueError, OSError):
+                    pass
+            
+            # Handle dict objects with date components
+            if isinstance(date_value, dict):
+                # Look for common date fields
+                if "year" in date_value and "month" in date_value and "day" in date_value:
+                    year = int(date_value["year"])
+                    month = int(date_value["month"])
+                    day = int(date_value["day"])
                     
-            elif isinstance(date_value, (int, float)):
-                # Handle timestamp
-                return datetime.fromtimestamp(date_value)
+                    # Handle optional time components
+                    hour = int(date_value.get("hour", 0))
+                    minute = int(date_value.get("minute", 0))
+                    second = int(date_value.get("second", 0))
+                    
+                    return datetime(year, month, day, hour, minute, second)
                 
-            else:
-                _LOGGER.warning("Calendar %s: Unsupported date format: %s (%s)", self.query_id, date_value, type(date_value))
-                return None
-                
+                # Try to extract from other common fields
+                for key in ["date", "time", "timestamp"]:
+                    if key in date_value:
+                        parsed = self._parse_date(date_value[key])
+                        if parsed:
+                            return parsed
+            
+            _LOGGER.warning("Calendar %s: Unsupported date format: %s (type: %s)", 
+                           self.query_id, date_value, type(date_value))
+            return None
+            
         except Exception as e:
             _LOGGER.error("Calendar %s: Error parsing date %s: %s", self.query_id, date_value, e)
             return None
@@ -179,46 +253,81 @@ class FinanceAssistantCalendar(CalendarEntity):
     ) -> list[CalendarEvent]:
         """Return calendar events within a datetime range."""
         events = self.events
+        
+        # Filter events within the specified range
         filtered_events = []
-        
         for event in events:
-            if event.start and event.end:
-                # Check if event overlaps with the requested range
-                if (
-                    (event.start <= end_date and event.end >= start_date) or
-                    (event.start >= start_date and event.start <= end_date) or
-                    (event.end >= start_date and event.end <= end_date)
-                ):
-                    filtered_events.append(event)
+            # Check if event overlaps with the specified range
+            if (event.start <= end_date and event.end >= start_date):
+                filtered_events.append(event)
         
+        _LOGGER.debug("Calendar %s: Returning %d events between %s and %s", 
+                     self.query_id, len(filtered_events), start_date, end_date)
         return filtered_events
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return entity specific state attributes."""
-        attrs = {
+        if not self.coordinator.data or "calendars" not in self.coordinator.data:
+            return {}
+            
+        calendar_data = self.coordinator.data["calendars"].get(self.query_id, [])
+        
+        attributes = {
             ATTR_QUERY_ID: self.query_id,
-            ATTR_QUERY_NAME: self.query["name"],
+            ATTR_QUERY_NAME: self.query.get("name", ""),
             ATTR_QUERY_DESCRIPTION: self.query.get("description", ""),
             ATTR_QUERY_TYPE: self.query.get("query_type", ""),
+            ATTR_LAST_UPDATED: self.coordinator.last_update_success,
+            "data_source": "query",
+            "event_count": len(calendar_data) if isinstance(calendar_data, list) else 0,
         }
-
-        # Add last updated timestamp
-        if hasattr(self.coordinator, 'last_update_success_time') and self.coordinator.last_update_success_time:
-            attrs[ATTR_LAST_UPDATED] = self.coordinator.last_update_success_time.isoformat()
-
-        # Add calendar-specific attributes
-        attrs["event_count"] = len(self.events)
-
-        return attrs
+        
+        # Add query-specific attributes
+        if self.query.get("ha_entity_id"):
+            attributes["entity_id"] = self.query["ha_entity_id"]
+        
+        # Add calendar data context if available
+        if calendar_data and isinstance(calendar_data, list):
+            # Add sample event data (first few events)
+            if len(calendar_data) > 0:
+                sample_events = []
+                for event in calendar_data[:3]:  # First 3 events
+                    sample_event = {
+                        "summary": self._get_event_summary(event),
+                        "start": str(event.get("start", event.get("dtstart", ""))),
+                        "end": str(event.get("end", event.get("dtend", ""))),
+                    }
+                    sample_events.append(sample_event)
+                attributes["sample_events"] = sample_events
+            
+            # Add event statistics
+            if len(calendar_data) > 0:
+                try:
+                    # Calculate date range of events
+                    dates = []
+                    for event in calendar_data:
+                        start_date = self._parse_date(event.get("start") or event.get("dtstart"))
+                        if start_date:
+                            dates.append(start_date)
+                    
+                    if dates:
+                        min_date = min(dates)
+                        max_date = max(dates)
+                        attributes.update({
+                            "earliest_event": min_date.isoformat(),
+                            "latest_event": max_date.isoformat(),
+                            "date_range_days": (max_date - min_date).days,
+                        })
+                except Exception as e:
+                    _LOGGER.debug("Calendar %s: Could not calculate event statistics: %s", self.query_id, e)
+        
+        return attributes
 
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return (
-            self.coordinator.last_update_success
-            and self.coordinator.data is not None
-        )
+        return self.coordinator.last_update_success
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""

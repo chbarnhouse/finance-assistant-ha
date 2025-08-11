@@ -32,33 +32,21 @@ async def async_setup_entry(
     """Set up Finance Assistant sensor based on a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
-    # Define dashboard sensor names to avoid conflicts
-    dashboard_sensor_names = {
-        "Net Worth",
-        "Total Assets", 
-        "Total Liabilities",
-        "Total Account Balance"
-    }
-    
-    # Create sensors for each SENSOR query (skip conflicting names)
+    # Create sensors for each SENSOR query
     sensors = []
     if coordinator.data and "queries" in coordinator.data:
         for query in coordinator.data["queries"]:
             if query.get("output_type") == "SENSOR":
-                # Skip queries that have the same name as dashboard sensors
-                query_name = query.get("ha_friendly_name") or query.get("name", "")
-                if query_name not in dashboard_sensor_names:
-                    sensor = FinanceAssistantSensor(coordinator, query)
-                    sensors.append(sensor)
-                else:
-                    _LOGGER.debug("Skipping query sensor '%s' - conflicts with dashboard sensor", query_name)
+                sensor = FinanceAssistantSensor(coordinator, query)
+                sensors.append(sensor)
+                _LOGGER.debug("Created sensor for query: %s", query.get("name", ""))
     
-    # Add dashboard sensors for real-time financial data
+    # Add only essential dashboard sensors that don't conflict with queries
+    # These provide core financial metrics that may not have corresponding queries
     dashboard_sensors = [
         DashboardSensor(coordinator, "Net Worth", "net_worth", "Net Worth"),
         DashboardSensor(coordinator, "Total Assets", "total_assets", "Total Assets"),
         DashboardSensor(coordinator, "Total Liabilities", "total_liabilities", "Total Liabilities"),
-        DashboardSensor(coordinator, "Total Account Balance", "total_account_balance", "Total Account Balance"),
     ]
     
     sensors.extend(dashboard_sensors)
@@ -101,18 +89,17 @@ class DashboardSensor(SensorEntity):
             return None
     
     def _extract_numeric_value(self, value) -> float | None:
-        """Extract numeric value from various formats."""
+        """Extract numeric value from various data types."""
         if value is None:
             return None
-            
+        
         try:
             if isinstance(value, (int, float)):
                 return float(value)
             elif isinstance(value, str):
-                # Remove currency symbols and formatting
-                cleaned = value.replace('$', '').replace(',', '').replace(' ', '').strip()
-                if cleaned:
-                    return float(cleaned)
+                # Remove currency symbols and commas, then convert
+                cleaned = value.replace('$', '').replace(',', '').replace('(', '').replace(')', '')
+                return float(cleaned)
             return None
         except (ValueError, TypeError):
             return None
@@ -129,17 +116,51 @@ class DashboardSensor(SensorEntity):
     
     @property
     def unit_of_measurement(self) -> str | None:
-        """Return the unit of measurement."""
+        """Return the unit of measurement of the sensor."""
         return "USD"
     
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
         return self.coordinator.last_update_success
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data or "dashboard" not in self.coordinator.data:
+            return {}
+            
+        dashboard_data = self.coordinator.data["dashboard"]
+        
+        # Get additional context based on sensor type
+        attributes = {
+            "last_updated": self.coordinator.last_update_success,
+            "data_source": "dashboard",
+        }
+        
+        if self.key == "net_worth":
+            # Add breakdown of net worth components
+            accounts_summary = dashboard_data.get("accounts_summary", {})
+            credit_cards_summary = dashboard_data.get("credit_cards_summary", {})
+            assets_summary = dashboard_data.get("assets_summary", {})
+            liabilities_summary = dashboard_data.get("liabilities_summary", {})
+            
+            attributes.update({
+                "accounts_count": accounts_summary.get("count", 0),
+                "accounts_total": accounts_summary.get("total_balance", 0),
+                "credit_cards_count": credit_cards_summary.get("count", 0),
+                "credit_cards_total": credit_cards_summary.get("total_balance", 0),
+                "assets_count": assets_summary.get("count", 0),
+                "assets_total": assets_summary.get("total_value", 0),
+                "liabilities_count": liabilities_summary.get("count", 0),
+                "liabilities_total": liabilities_summary.get("total_balance", 0),
+            })
+        
+        return attributes
 
 
 class FinanceAssistantSensor(SensorEntity):
-    """Representation of a Finance Assistant sensor."""
+    """Representation of a Finance Assistant query sensor."""
 
     def __init__(self, coordinator, query: dict[str, Any]) -> None:
         """Initialize the sensor."""
@@ -153,135 +174,120 @@ class FinanceAssistantSensor(SensorEntity):
     @property
     def state(self) -> StateType:
         """Return the state of the sensor."""
-        if (
-            self.coordinator.data
-            and "sensors" in self.coordinator.data
-            and self.query_id in self.coordinator.data["sensors"]
-        ):
-            sensor_data = self.coordinator.data["sensors"][self.query_id]
-            _LOGGER.debug("Sensor %s data: %s", self.query_id, sensor_data)
-            
-            # Handle different data formats with better error handling
-            try:
-                if isinstance(sensor_data, dict):
-                    # Try multiple possible value fields
-                    value = sensor_data.get("state") or sensor_data.get("value") or sensor_data.get("amount") or sensor_data.get("balance")
-                    if value is not None:
-                        # Convert to numeric if possible
-                        numeric_value = self._convert_to_numeric(value)
-                        if numeric_value is not None:
-                            _LOGGER.debug("Sensor %s dict value: %s", self.query_id, numeric_value)
-                            return numeric_value
-                    
-                    # If no direct value, try to calculate from nested data
-                    calculated_value = self._calculate_from_dict(sensor_data)
-                    if calculated_value is not None:
-                        _LOGGER.debug("Sensor %s calculated value: %s", self.query_id, calculated_value)
-                        return calculated_value
-                    
-                    _LOGGER.warning("Sensor %s: Could not extract value from dict", self.query_id)
-                    return 0
-                    
-                elif isinstance(sensor_data, (int, float)):
-                    _LOGGER.debug("Sensor %s numeric value: %s", self.query_id, sensor_data)
-                    return sensor_data
-                    
-                elif isinstance(sensor_data, list) and len(sensor_data) > 0:
-                    # If it's a list, calculate the total value
-                    total = self._calculate_list_total(sensor_data)
-                    _LOGGER.debug("Sensor %s list total: %s", self.query_id, total)
-                    return total
-                    
-                elif isinstance(sensor_data, str):
-                    # Try to convert string to numeric
-                    numeric_value = self._convert_to_numeric(sensor_data)
-                    if numeric_value is not None:
-                        _LOGGER.debug("Sensor %s string value: %s", self.query_id, numeric_value)
-                        return numeric_value
-                    
-                    _LOGGER.warning("Sensor %s: Could not convert string to numeric: %s", self.query_id, sensor_data)
-                    return 0
-                else:
-                    _LOGGER.warning("Sensor %s: Unsupported data type: %s", self.query_id, type(sensor_data))
-                    return 0
-                    
-            except Exception as e:
-                _LOGGER.error("Sensor %s: Error processing data: %s", self.query_id, e)
-                return 0
-        else:
-            _LOGGER.debug("Sensor %s: No data available", self.query_id)
-            return 0
-
-    def _convert_to_numeric(self, value) -> float | None:
-        """Convert value to numeric if possible."""
-        if value is None:
+        if not self.coordinator.data or "sensors" not in self.coordinator.data:
             return None
             
+        sensor_data = self.coordinator.data["sensors"].get(str(self.query_id))
+        if not sensor_data:
+            return None
+        
+        try:
+            # The HomeAssistantSensorView returns {"value": value, "unit": "USD"}
+            if isinstance(sensor_data, dict) and "value" in sensor_data:
+                return self._convert_to_numeric(sensor_data["value"])
+            
+            # Fallback to old format if "data" field exists
+            if isinstance(sensor_data, dict) and "data" in sensor_data:
+                data = sensor_data["data"]
+                if isinstance(data, list) and len(data) > 0:
+                    # If it's a list, try to get the first item's value
+                    first_item = data[0]
+                    if isinstance(first_item, dict):
+                        # Look for common value fields
+                        value = first_item.get("value") or first_item.get("balance") or first_item.get("amount") or first_item.get("total")
+                        if value is not None:
+                            return self._convert_to_numeric(value)
+                elif isinstance(data, dict):
+                    # If it's a dict, look for value fields
+                    value = data.get("value") or data.get("balance") or data.get("amount") or data.get("total")
+                    if value is not None:
+                        return self._convert_to_numeric(value)
+                elif isinstance(data, (int, float)):
+                    # If it's already a number
+                    return self._convert_to_numeric(data)
+                elif isinstance(data, str):
+                    # If it's a string, try to parse it
+                    return self._convert_to_numeric(data)
+            elif isinstance(sensor_data, (int, float)):
+                # Direct numeric value
+                return self._convert_to_numeric(sensor_data)
+            elif isinstance(sensor_data, str):
+                # String value, try to parse
+                return self._convert_to_numeric(sensor_data)
+            elif isinstance(sensor_data, list):
+                # List of data, try to calculate total
+                return self._calculate_list_total(sensor_data)
+            elif isinstance(sensor_data, dict):
+                # Dict data, try to extract or calculate
+                return self._calculate_from_dict(sensor_data)
+            
+            return None
+        except Exception as e:
+            _LOGGER.error("Error extracting sensor value for query %s: %s", self.query_id, e)
+            return None
+
+    def _convert_to_numeric(self, value) -> float | None:
+        """Convert various value types to numeric."""
+        if value is None:
+            return None
+        
         try:
             if isinstance(value, (int, float)):
                 return float(value)
             elif isinstance(value, str):
-                # Remove common currency symbols and whitespace
-                cleaned = value.replace('$', '').replace(',', '').replace(' ', '').strip()
-                if cleaned:
-                    return float(cleaned)
+                # Remove currency symbols, commas, and parentheses
+                cleaned = value.replace('$', '').replace(',', '').replace('(', '').replace(')', '')
+                # Handle negative values in parentheses
+                if cleaned.startswith('-') or cleaned.startswith('−'):
+                    cleaned = '-' + cleaned[1:]
+                return float(cleaned)
             return None
         except (ValueError, TypeError):
             return None
 
     def _calculate_from_dict(self, data: dict) -> float | None:
-        """Calculate value from dictionary data."""
+        """Calculate total from dictionary data."""
         try:
-            # Look for common financial fields
-            financial_fields = ['amount', 'balance', 'total', 'sum', 'value', 'state']
-            for field in financial_fields:
+            total = 0.0
+            # Look for common numeric fields
+            numeric_fields = ["value", "balance", "amount", "total", "sum", "count"]
+            
+            for field in numeric_fields:
                 if field in data:
-                    value = self._convert_to_numeric(data[field])
-                    if value is not None:
-                        return value
+                    value = data[field]
+                    if isinstance(value, (int, float)):
+                        total += float(value)
+                    elif isinstance(value, str):
+                        parsed = self._convert_to_numeric(value)
+                        if parsed is not None:
+                            total += parsed
             
-            # If no direct financial fields, try to sum numeric values
-            total = 0
-            count = 0
-            for key, value in data.items():
-                if isinstance(value, (int, float)):
-                    total += value
-                    count += 1
-                elif isinstance(value, str):
-                    numeric_value = self._convert_to_numeric(value)
-                    if numeric_value is not None:
-                        total += numeric_value
-                        count += 1
-            
-            return total if count > 0 else None
-            
+            return total if total != 0 else None
         except Exception as e:
-            _LOGGER.debug("Sensor %s: Error calculating from dict: %s", self.query_id, e)
+            _LOGGER.error("Error calculating from dict: %s", e)
             return None
 
     def _calculate_list_total(self, data_list: list) -> float:
-        """Calculate total from list of data items."""
+        """Calculate total from list of data."""
         try:
-            total = 0
+            total = 0.0
             for item in data_list:
                 if isinstance(item, dict):
-                    # Handle different field names for values
-                    value = item.get("value") or item.get("state") or item.get("balance") or item.get("amount")
+                    # Try to extract numeric value from dict item
+                    value = self._calculate_from_dict(item)
                     if value is not None:
-                        numeric_value = self._convert_to_numeric(value)
-                        if numeric_value is not None:
-                            total += numeric_value
+                        total += value
                 elif isinstance(item, (int, float)):
-                    total += item
+                    total += float(item)
                 elif isinstance(item, str):
-                    numeric_value = self._convert_to_numeric(item)
-                    if numeric_value is not None:
-                        total += numeric_value
+                    parsed = self._convert_to_numeric(item)
+                    if parsed is not None:
+                        total += parsed
             
             return total
         except Exception as e:
-            _LOGGER.error("Sensor %s: Error calculating list total: %s", self.query_id, e)
-            return 0
+            _LOGGER.error("Error calculating list total: %s", e)
+            return 0.0
 
     @property
     def native_value(self) -> StateType:
@@ -291,61 +297,110 @@ class FinanceAssistantSensor(SensorEntity):
     @property
     def device_class(self) -> SensorDeviceClass | None:
         """Return the device class of the sensor."""
-        # Use monetary device class for financial sensors
+        # Determine device class based on query name or data
+        query_name = self.query.get("name", "").lower()
+        query_description = self.query.get("description", "").lower()
+        
+        # Check for specific financial indicators
+        if any(term in query_name or term in query_description for term in ["balance", "amount", "total", "worth", "asset", "liability"]):
+            return SensorDeviceClass.MONETARY
+        elif any(term in query_name or term in query_description for term in ["percentage", "rate", "ratio"]):
+            return SensorDeviceClass.PRESSURE  # Closest to percentage
+        elif any(term in query_name or query_description for term in ["count", "number"]):
+            return SensorDeviceClass.NONE  # No specific device class for counts
+        
+        # Default to monetary for financial queries
         return SensorDeviceClass.MONETARY
 
     @property
     def state_class(self) -> SensorStateClass | None:
         """Return the state class of the sensor."""
-        # Determine state class based on query type
-        if self.query.get("query_type") == "TRANSACTIONS":
-            return SensorStateClass.TOTAL
-        elif self.query.get("query_type") == "ACCOUNTS":
+        # Determine state class based on query type and data
+        query_name = self.query.get("name", "").lower()
+        query_description = self.query.get("description", "").lower()
+        
+        # Check for specific indicators
+        if any(term in query_name or term in query_description for term in ["balance", "amount", "total", "worth", "asset", "liability"]):
             return SensorStateClass.MEASUREMENT
-        return None
+        elif any(term in query_name or query_description for term in ["count", "number"]):
+            return SensorStateClass.MEASUREMENT
+        elif any(term in query_name or query_description for term in ["percentage", "rate", "ratio"]):
+            return SensorStateClass.MEASUREMENT
+        
+        # Default to measurement for financial queries
+        return SensorStateClass.MEASUREMENT
 
     @property
     def unit_of_measurement(self) -> str | None:
-        """Return the unit of measurement."""
-        # Use the unit from the query configuration, fallback to defaults
-        unit = self.query.get("ha_unit_of_measurement")
-        if unit:
-            return unit
+        """Return the unit of measurement of the sensor."""
+        # Try to get unit from the sensor data first
+        if (self.coordinator.data and "sensors" in self.coordinator.data and 
+            str(self.query_id) in self.coordinator.data["sensors"]):
+            sensor_data = self.coordinator.data["sensors"][str(self.query_id)]
+            if isinstance(sensor_data, dict) and "unit" in sensor_data:
+                return sensor_data["unit"]
         
-        # Default to USD for financial sensors
-        return "USD"
+        # Fallback to query configuration
+        if self.query.get("ha_unit_of_measurement"):
+            return self.query["ha_unit_of_measurement"]
+        
+        # Determine unit based on device class and query content
+        device_class = self.device_class
+        
+        if device_class == SensorDeviceClass.MONETARY:
+            return "USD"  # Default to USD for financial data
+        elif device_class == SensorDeviceClass.PRESSURE:
+            return "%"  # Percentage
+        elif device_class == SensorDeviceClass.NONE:
+            # Check if it's a count
+            query_name = self.query.get("name", "").lower()
+            if any(term in query_name for term in ["count", "number", "total"]):
+                return None  # No unit for counts
+        
+        return "USD"  # Default to USD
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return entity specific state attributes."""
-        if not self.coordinator.data or "queries" not in self.coordinator.data:
+        if not self.coordinator.data or "sensors" not in self.coordinator.data:
             return {}
             
-        # Find the query data
-        queries = self.coordinator.data["queries"]
-        query_data = None
-        for query in queries:
-            if query["id"] == self.query_id:
-                query_data = query
-                break
-                
-        if not query_data:
-            return {}
-            
+        sensor_data = self.coordinator.data["sensors"].get(str(self.query_id))
+        
         attributes = {
             ATTR_QUERY_ID: self.query_id,
-            ATTR_QUERY_NAME: query_data.get("name", "Unknown"),
-            ATTR_QUERY_DESCRIPTION: query_data.get("description", ""),
-            ATTR_QUERY_TYPE: query_data.get("query_type", "Unknown"),
-            ATTR_LAST_UPDATED: datetime.now().isoformat(),
+            ATTR_QUERY_NAME: self.query.get("name", ""),
+            ATTR_QUERY_DESCRIPTION: self.query.get("description", ""),
+            ATTR_QUERY_TYPE: self.query.get("query_type", ""),
+            ATTR_LAST_UPDATED: self.coordinator.last_update_success,
+            "data_source": "query",
         }
         
         # Add query-specific attributes
-        if query_data.get("ha_friendly_name"):
-            attributes["ha_friendly_name"] = query_data["ha_friendly_name"]
-        if query_data.get("ha_unit_of_measurement"):
-            attributes["ha_unit_of_measurement"] = query_data["ha_unit_of_measurement"]
-            
+        if self.query.get("ha_entity_id"):
+            attributes["entity_id"] = self.query["ha_entity_id"]
+        if self.query.get("ha_unit_of_measurement"):
+            attributes["custom_unit"] = self.query["ha_unit_of_measurement"]
+        if self.query.get("ha_device_class"):
+            attributes["custom_device_class"] = self.query["ha_device_class"]
+        
+        # Add data context if available
+        if sensor_data:
+            if isinstance(sensor_data, dict) and "data" in sensor_data:
+                data = sensor_data["data"]
+                if isinstance(data, list):
+                    attributes["data_count"] = len(data)
+                    # Add sample data (first few items)
+                    if len(data) > 0:
+                        attributes["sample_data"] = data[:3]
+                elif isinstance(data, dict):
+                    attributes["data_keys"] = list(data.keys())
+                    attributes["sample_data"] = data
+            elif isinstance(sensor_data, (int, float)):
+                attributes["raw_value"] = sensor_data
+            elif isinstance(sensor_data, str):
+                attributes["raw_value"] = sensor_data
+        
         return attributes
 
     @property

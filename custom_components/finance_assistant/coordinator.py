@@ -1,6 +1,7 @@
 """Data coordinator for Finance Assistant integration."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
@@ -72,7 +73,7 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
             raise CannotConnect() from err
 
     async def _async_update_data(self) -> Dict[str, Any]:
-        """Update data via API."""
+        """Update data via API with enhanced error handling and retry logic."""
         try:
             async with aiohttp.ClientSession() as session:
                 # Prepare headers with required API key
@@ -81,108 +82,169 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
                 
                 # Get available queries
                 queries_url = f"{self.base_url}{API_ENDPOINT_QUERIES}"
-                async with session.get(queries_url, headers=headers) as response:
-                    if response.status != 200:
-                        raise UpdateFailed(f"Error fetching queries: {response.status}")
-                    queries = await response.json()
-
+                queries = await self._fetch_with_retry(session, queries_url, headers, "queries")
+                
                 # Fetch dashboard data for real-time financial information
                 dashboard_url = f"{self.base_url}/api/ha/dashboard/"
                 dashboard_data = {}
                 try:
-                    async with session.get(dashboard_url, headers=headers) as response:
-                        if response.status == 200:
-                            dashboard_data = await response.json()
-                            _LOGGER.debug("Dashboard data: %s", dashboard_data)
-                        else:
-                            _LOGGER.warning("Failed to fetch dashboard data: %s", response.status)
+                    dashboard_data = await self._fetch_with_retry(session, dashboard_url, headers, "dashboard")
+                    _LOGGER.debug("Dashboard data fetched successfully")
                 except Exception as e:
-                    _LOGGER.warning("Error fetching dashboard data: %s", e)
-
-                # Fetch data for each query
-                data = {"queries": queries, "sensors": {}, "calendars": {}, "dashboard": dashboard_data}
-                _LOGGER.debug("Found %d queries to process", len(queries))
+                    _LOGGER.warning("Failed to fetch dashboard data: %s", e)
+                    # Continue without dashboard data - queries can still work
                 
-                for query in queries:
-                    query_id = query["id"]
-                    query_name = query.get("name", "Unknown")
-                    output_type = query.get("output_type", "Unknown")
-                    _LOGGER.debug("Processing query %s (%s): %s", query_id, query_name, output_type)
-                    
+                # Initialize data structure
+                data = {
+                    "queries": queries,
+                    "dashboard": dashboard_data,
+                    "sensors": {},
+                    "calendars": {},
+                    "last_update": datetime.now().isoformat(),
+                }
+                
+                # Fetch sensor data for each SENSOR query
+                sensor_queries = [q for q in queries if q.get("output_type") == "SENSOR"]
+                _LOGGER.debug("Found %d sensor queries to fetch", len(sensor_queries))
+                
+                for query in sensor_queries:
                     try:
-                        # Fetch sensor data for SENSOR queries
-                        if output_type == "SENSOR":
-                            sensor_url = f"{self.base_url}{API_ENDPOINT_SENSOR.format(query_id=query_id)}"
-                            _LOGGER.debug("Fetching sensor data from: %s", sensor_url)
-                            async with session.get(sensor_url, headers=headers) as response:
-                                if response.status == 200:
-                                    sensor_data = await response.json()
-                                    data["sensors"][query_id] = sensor_data
-                                    _LOGGER.debug("Sensor data for %s (%s): %s", query_id, query_name, sensor_data)
-                                else:
-                                    _LOGGER.warning("Failed to fetch sensor data for %s (%s): %s", query_id, query_name, response.status)
-                        
-                        # Fetch calendar data for CALENDAR queries
-                        elif output_type == "CALENDAR":
-                            calendar_url = f"{self.base_url}{API_ENDPOINT_CALENDAR.format(query_id=query_id)}"
-                            _LOGGER.debug("Fetching calendar data from: %s", calendar_url)
-                            async with session.get(calendar_url, headers=headers) as response:
-                                if response.status == 200:
-                                    calendar_data = await response.json()
-                                    data["calendars"][query_id] = calendar_data
-                                    _LOGGER.debug("Calendar data for %s (%s): %s", query_id, query_name, calendar_data)
-                                else:
-                                    _LOGGER.warning("Failed to fetch calendar data for %s (%s): %s", query_id, query_name, response.status)
-                        else:
-                            _LOGGER.debug("Skipping query %s (%s): unknown output type %s", query_id, query_name, output_type)
-                    
+                        sensor_data = await self.get_sensor_data(query["id"])
+                        if sensor_data:
+                            data["sensors"][str(query["id"])] = sensor_data
                     except Exception as e:
-                        _LOGGER.error("Error fetching data for query %s (%s): %s", query_id, query_name, e)
-                        continue
-
-                _LOGGER.debug("Final coordinator data summary: %d queries, %d sensors, %d calendars, dashboard: %s", 
-                             len(data["queries"]), len(data["sensors"]), len(data["calendars"]), "loaded" if dashboard_data else "failed")
+                        _LOGGER.warning("Failed to fetch sensor data for query %s: %s", query["id"], e)
+                        # Continue with other queries
+                
+                # Fetch calendar data for each CALENDAR query
+                calendar_queries = [q for q in queries if q.get("output_type") == "CALENDAR"]
+                _LOGGER.debug("Found %d calendar queries to fetch", len(calendar_queries))
+                
+                for query in calendar_queries:
+                    try:
+                        calendar_data = await self.get_calendar_data(query["id"])
+                        if calendar_data:
+                            data["calendars"][str(query["id"])] = calendar_data
+                    except Exception as e:
+                        _LOGGER.warning("Failed to fetch calendar data for query %s: %s", query["id"], e)
+                        # Continue with other queries
+                
+                _LOGGER.debug("Data update completed successfully")
                 return data
+                
+        except Exception as e:
+            _LOGGER.error("Error updating Finance Assistant data: %s", e)
+            raise UpdateFailed(f"Failed to update Finance Assistant data: {e}")
 
-        except aiohttp.ClientError as err:
-            _LOGGER.error("Error updating Finance Assistant data: %s", err)
-            raise UpdateFailed(f"Error communicating with Finance Assistant: {err}") from err
-        except Exception as err:
-            _LOGGER.error("Unexpected error updating Finance Assistant data: %s", err)
-            raise UpdateFailed(f"Unexpected error: {err}") from err
+    async def _fetch_with_retry(self, session: aiohttp.ClientSession, url: str, headers: Dict[str, str], data_type: str, max_retries: int = 3) -> Any:
+        """Fetch data with retry logic and better error handling."""
+        last_error = None
+        
+        for attempt in range(max_retries):
+            try:
+                timeout = aiohttp.ClientTimeout(total=30)  # 30 second timeout
+                async with session.get(url, headers=headers, timeout=timeout) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        _LOGGER.debug("Successfully fetched %s data on attempt %d", data_type, attempt + 1)
+                        return data
+                    elif response.status == 401:
+                        _LOGGER.error("Authentication failed for %s: Invalid API key", data_type)
+                        raise InvalidAuth()
+                    elif response.status == 404:
+                        _LOGGER.error("Endpoint not found for %s: %s", data_type, url)
+                        raise CannotConnect()
+                    elif response.status >= 500:
+                        _LOGGER.warning("Server error for %s (attempt %d/%d): %s", data_type, attempt + 1, max_retries, response.status)
+                        if attempt < max_retries - 1:
+                            await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                            continue
+                        else:
+                            raise UpdateFailed(f"Server error after {max_retries} attempts: {response.status}")
+                    else:
+                        _LOGGER.error("HTTP error for %s: %s", data_type, response.status)
+                        raise UpdateFailed(f"HTTP error {response.status} for {data_type}")
+                        
+            except aiohttp.ClientError as e:
+                last_error = e
+                _LOGGER.warning("Network error for %s (attempt %d/%d): %s", data_type, attempt + 1, max_retries, e)
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                else:
+                    raise CannotConnect() from e
+            except asyncio.TimeoutError:
+                last_error = "Request timeout"
+                _LOGGER.warning("Timeout for %s (attempt %d/%d)", data_type, attempt + 1, max_retries)
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                else:
+                    raise UpdateFailed(f"Request timeout after {max_retries} attempts")
+            except Exception as e:
+                last_error = e
+                _LOGGER.error("Unexpected error for %s (attempt %d/%d): %s", data_type, attempt + 1, max_retries, e)
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                else:
+                    raise UpdateFailed(f"Unexpected error after {max_retries} attempts: {e}")
+        
+        # If we get here, all retries failed
+        raise UpdateFailed(f"Failed to fetch {data_type} after {max_retries} attempts. Last error: {last_error}")
 
     async def get_sensor_data(self, query_id: str) -> Dict[str, Any]:
-        """Get sensor data for a specific query."""
+        """Get sensor data for a specific query with enhanced error handling."""
         try:
             async with aiohttp.ClientSession() as session:
                 url = f"{self.base_url}{API_ENDPOINT_SENSOR.format(query_id=query_id)}"
                 headers = {"X-API-Key": self.api_key}
                 
-                async with session.get(url, headers=headers) as response:
+                timeout = aiohttp.ClientTimeout(total=15)  # 15 second timeout for individual queries
+                async with session.get(url, headers=headers, timeout=timeout) as response:
                     if response.status == 200:
-                        return await response.json()
+                        data = await response.json()
+                        _LOGGER.debug("Sensor data for query %s: %s", query_id, data)
+                        return data
+                    elif response.status == 404:
+                        _LOGGER.warning("Query %s not found", query_id)
+                        return None
                     else:
-                        _LOGGER.error("Error fetching sensor data: %s", response.status)
-                        return {}
-        except aiohttp.ClientError as err:
-            _LOGGER.error("Error fetching sensor data: %s", err)
-            return {}
+                        _LOGGER.warning("Failed to fetch sensor data for query %s: HTTP %s", query_id, response.status)
+                        return None
+                        
+        except aiohttp.ClientError as e:
+            _LOGGER.error("Network error fetching sensor data for query %s: %s", query_id, e)
+            return None
+        except Exception as e:
+            _LOGGER.error("Error fetching sensor data for query %s: %s", query_id, e)
+            return None
 
     async def get_calendar_data(self, query_id: str) -> List[Dict[str, Any]]:
-        """Get calendar data for a specific query."""
+        """Get calendar data for a specific query with enhanced error handling."""
         try:
             async with aiohttp.ClientSession() as session:
                 url = f"{self.base_url}{API_ENDPOINT_CALENDAR.format(query_id=query_id)}"
                 headers = {"X-API-Key": self.api_key}
                 
-                async with session.get(url, headers=headers) as response:
+                timeout = aiohttp.ClientTimeout(total=15)  # 15 second timeout for individual queries
+                async with session.get(url, headers=headers, timeout=timeout) as response:
                     if response.status == 200:
-                        return await response.json()
-                    else:
-                        _LOGGER.error("Error fetching calendar data: %s", response.status)
+                        data = await response.json()
+                        _LOGGER.debug("Calendar data for query %s: %s events", query_id, len(data) if isinstance(data, list) else 0)
+                        return data if isinstance(data, list) else []
+                    elif response.status == 404:
+                        _LOGGER.warning("Query %s not found", query_id)
                         return []
-        except aiohttp.ClientError as err:
-            _LOGGER.error("Error fetching calendar data: %s", err)
+                    else:
+                        _LOGGER.warning("Failed to fetch calendar data for query %s: HTTP %s", query_id, response.status)
+                        return []
+                        
+        except aiohttp.ClientError as e:
+            _LOGGER.error("Network error fetching calendar data for query %s: %s", query_id, e)
+            return []
+        except Exception as e:
+            _LOGGER.error("Error fetching calendar data for query %s: %s", query_id, e)
             return []
 
 
