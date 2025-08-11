@@ -86,8 +86,21 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
                         raise UpdateFailed(f"Error fetching queries: {response.status}")
                     queries = await response.json()
 
+                # Fetch dashboard data for real-time financial information
+                dashboard_url = f"{self.base_url}/api/dashboard/"
+                dashboard_data = {}
+                try:
+                    async with session.get(dashboard_url, headers=headers) as response:
+                        if response.status == 200:
+                            dashboard_data = await response.json()
+                            _LOGGER.debug("Dashboard data: %s", dashboard_data)
+                        else:
+                            _LOGGER.warning("Failed to fetch dashboard data: %s", response.status)
+                except Exception as e:
+                    _LOGGER.warning("Error fetching dashboard data: %s", e)
+
                 # Fetch data for each query
-                data = {"queries": queries, "sensors": {}, "calendars": {}}
+                data = {"queries": queries, "sensors": {}, "calendars": {}, "dashboard": dashboard_data}
                 _LOGGER.debug("Found %d queries to process", len(queries))
                 
                 for query in queries:
@@ -100,27 +113,14 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
                         # Fetch sensor data for SENSOR queries
                         if output_type == "SENSOR":
                             sensor_url = f"{self.base_url}{API_ENDPOINT_SENSOR.format(query_id=query_id)}"
-                            _LOGGER.info("=== SENSOR FETCH DEBUG START ===")
-                            _LOGGER.info("Fetching sensor data from: %s", sensor_url)
-                            _LOGGER.info("Query: %s (%s) - %s", query_id, query_name, output_type)
+                            _LOGGER.debug("Fetching sensor data from: %s", sensor_url)
                             async with session.get(sensor_url, headers=headers) as response:
                                 if response.status == 200:
                                     sensor_data = await response.json()
                                     data["sensors"][query_id] = sensor_data
-                                    _LOGGER.info("Sensor data for %s (%s): %s", query_id, query_name, sensor_data)
-                                    _LOGGER.info("Sensor data type: %s", type(sensor_data))
-                                    if isinstance(sensor_data, dict):
-                                        _LOGGER.info("Sensor dict keys: %s", list(sensor_data.keys()))
-                                    elif isinstance(sensor_data, list):
-                                        _LOGGER.info("Sensor list length: %d", len(sensor_data))
-                                        if len(sensor_data) > 0:
-                                            _LOGGER.info("First item type: %s", type(sensor_data[0]))
-                                            if isinstance(sensor_data[0], dict):
-                                                _LOGGER.info("First item keys: %s", list(sensor_data[0].keys()))
-                                    _LOGGER.info("=== SENSOR FETCH DEBUG END ===")
+                                    _LOGGER.debug("Sensor data for %s (%s): %s", query_id, query_name, sensor_data)
                                 else:
                                     _LOGGER.warning("Failed to fetch sensor data for %s (%s): %s", query_id, query_name, response.status)
-                                    _LOGGER.info("=== SENSOR FETCH DEBUG END ===")
                         
                         # Fetch calendar data for CALENDAR queries
                         elif output_type == "CALENDAR":
@@ -140,8 +140,8 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
                         _LOGGER.error("Error fetching data for query %s (%s): %s", query_id, query_name, e)
                         continue
 
-                _LOGGER.debug("Final coordinator data summary: %d queries, %d sensors, %d calendars", 
-                             len(data["queries"]), len(data["sensors"]), len(data["calendars"]))
+                _LOGGER.debug("Final coordinator data summary: %d queries, %d sensors, %d calendars, dashboard: %s", 
+                             len(data["queries"]), len(data["sensors"]), len(data["calendars"]), "loaded" if dashboard_data else "failed")
                 return data
 
         except aiohttp.ClientError as err:

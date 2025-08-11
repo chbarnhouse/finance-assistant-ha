@@ -1,10 +1,10 @@
-"""The Finance Assistant integration."""
+"""Finance Assistant integration for Home Assistant."""
 from __future__ import annotations
 
 import logging
 from typing import Any
 
-__version__ = "1.0.33"
+__version__ = "1.0.34"
 
 import voluptuous as vol
 
