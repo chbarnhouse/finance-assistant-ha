@@ -91,17 +91,17 @@ class FinanceAssistantCalendar(CalendarEntity):
             for event_data in calendar_data:
                 try:
                     # Parse event data with better error handling
-                    start_date = self._parse_date(event_data.get("dtstart") or event_data.get("start"))
+                    start_date = self._parse_date(event_data.get("start"))
                     if not start_date:
                         _LOGGER.warning("Calendar %s: Event missing start date, skipping", self.query_id)
                         continue
                     
-                    # Parse end date, with fallback to start date + 1 day
-                    end_date = self._parse_date(event_data.get("dtend") or event_data.get("end"))
+                    # Parse end date, with fallback to start date + 1 hour
+                    end_date = self._parse_date(event_data.get("end"))
                     if not end_date:
-                        # If no end date, set to start date + 1 day (default duration)
-                        end_date = start_date + timedelta(days=1)
-                        _LOGGER.debug("Calendar %s: Event missing end date, using start + 1 day", self.query_id)
+                        # If no end date, set to start date + 1 hour (default duration)
+                        end_date = start_date + timedelta(hours=1)
+                        _LOGGER.debug("Calendar %s: Event missing end date, using start + 1 hour", self.query_id)
                     
                     # Create calendar event with enhanced attributes
                     event = CalendarEvent(
@@ -110,7 +110,7 @@ class FinanceAssistantCalendar(CalendarEntity):
                         end=end_date,
                         description=self._get_event_description(event_data),
                         location=self._get_event_location(event_data),
-                        uid=str(event_data.get("id", "")),
+                        uid=str(event_data.get("uid", event_data.get("id", ""))),
                     )
                     
                     events.append(event)
@@ -129,7 +129,7 @@ class FinanceAssistantCalendar(CalendarEntity):
     def _get_event_summary(self, event_data: dict) -> str:
         """Extract event summary from event data."""
         # Try multiple possible summary fields
-        summary_fields = ["summary", "title", "name", "description", "memo"]
+        summary_fields = ["title", "summary", "name", "description", "memo"]
         
         for field in summary_fields:
             if field in event_data and event_data[field]:
@@ -137,7 +137,19 @@ class FinanceAssistantCalendar(CalendarEntity):
                 if summary.strip():
                     return summary.strip()
         
-        # Fallback to query name if no summary found
+        # If no summary found, try to create one from transaction data
+        if "amount" in event_data:
+            amount = event_data["amount"]
+            if isinstance(amount, (int, float)):
+                formatted_amount = f"${abs(amount):,.2f}"
+                if amount < 0:
+                    return f"Expense: {formatted_amount}"
+                else:
+                    return f"Income: {formatted_amount}"
+            else:
+                return f"Transaction: {amount}"
+        
+        # Final fallback
         return f"{self.query.get('name', 'Finance Event')}"
 
     def _get_event_description(self, event_data: dict) -> str | None:
@@ -151,7 +163,29 @@ class FinanceAssistantCalendar(CalendarEntity):
                 if desc.strip():
                     return desc.strip()
         
-        return None
+        # If no description, try to create one from transaction data
+        parts = []
+        
+        # Add payee if available
+        if event_data.get("payee"):
+            parts.append(f"Payee: {event_data['payee']}")
+        
+        # Add category if available
+        if event_data.get("category"):
+            parts.append(f"Category: {event_data['category']}")
+        
+        # Add account if available
+        if event_data.get("account"):
+            parts.append(f"Account: {event_data['account']}")
+        
+        # Add amount if available
+        if event_data.get("amount"):
+            amount = event_data["amount"]
+            if isinstance(amount, (int, float)):
+                formatted_amount = f"${amount:,.2f}"
+                parts.append(f"Amount: {formatted_amount}")
+        
+        return " | ".join(parts) if parts else None
 
     def _get_event_location(self, event_data: dict) -> str | None:
         """Extract event location from event data."""
@@ -163,6 +197,10 @@ class FinanceAssistantCalendar(CalendarEntity):
                 location = str(event_data[field])
                 if location.strip():
                     return location.strip()
+        
+        # If no location, try to use payee as location
+        if event_data.get("payee"):
+            return event_data["payee"]
         
         return None
 
