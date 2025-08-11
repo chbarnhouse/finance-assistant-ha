@@ -64,57 +64,87 @@ class FinanceAssistantSensor(SensorEntity):
             and self.query_id in self.coordinator.data["sensors"]
         ):
             sensor_data = self.coordinator.data["sensors"][self.query_id]
-            _LOGGER.debug("Sensor %s data: %s", self.query_id, sensor_data)
+            _LOGGER.info("=== SENSOR DEBUG START ===")
+            _LOGGER.info("Sensor %s (%s) raw data: %s", self.query_id, self.name, sensor_data)
+            _LOGGER.info("Sensor %s data type: %s", self.query_id, type(sensor_data))
             
             # Handle different data formats with better error handling
             try:
                 if isinstance(sensor_data, dict):
+                    _LOGGER.info("Sensor %s: Processing as DICT", self.query_id)
+                    _LOGGER.info("Sensor %s: Dict keys: %s", self.query_id, list(sensor_data.keys()))
+                    
                     # Try multiple possible value fields
                     value = sensor_data.get("state") or sensor_data.get("value") or sensor_data.get("amount") or sensor_data.get("balance")
+                    _LOGGER.info("Sensor %s: Direct value fields - state: %s, value: %s, amount: %s, balance: %s", 
+                                self.query_id, sensor_data.get("state"), sensor_data.get("value"), 
+                                sensor_data.get("amount"), sensor_data.get("balance"))
+                    
                     if value is not None:
+                        _LOGGER.info("Sensor %s: Found direct value: %s (type: %s)", self.query_id, value, type(value))
                         # Convert to numeric if possible
                         numeric_value = self._convert_to_numeric(value)
                         if numeric_value is not None:
-                            _LOGGER.debug("Sensor %s dict value: %s", self.query_id, numeric_value)
+                            _LOGGER.info("Sensor %s: Converted to numeric: %s", self.query_id, numeric_value)
+                            _LOGGER.info("=== SENSOR DEBUG END ===")
                             return numeric_value
+                        else:
+                            _LOGGER.warning("Sensor %s: Failed to convert value to numeric: %s", self.query_id, value)
                     
                     # If no direct value, try to calculate from nested data
+                    _LOGGER.info("Sensor %s: Trying to calculate from dict data", self.query_id)
                     calculated_value = self._calculate_from_dict(sensor_data)
                     if calculated_value is not None:
-                        _LOGGER.debug("Sensor %s calculated value: %s", self.query_id, calculated_value)
+                        _LOGGER.info("Sensor %s: Calculated value: %s", self.query_id, calculated_value)
+                        _LOGGER.info("=== SENSOR DEBUG END ===")
                         return calculated_value
                     
                     _LOGGER.warning("Sensor %s: Could not extract value from dict", self.query_id)
+                    _LOGGER.info("=== SENSOR DEBUG END ===")
                     return 0
                     
                 elif isinstance(sensor_data, (int, float)):
-                    _LOGGER.debug("Sensor %s numeric value: %s", self.query_id, sensor_data)
+                    _LOGGER.info("Sensor %s: Processing as NUMERIC: %s", self.query_id, sensor_data)
+                    _LOGGER.info("=== SENSOR DEBUG END ===")
                     return sensor_data
                     
                 elif isinstance(sensor_data, list) and len(sensor_data) > 0:
+                    _LOGGER.info("Sensor %s: Processing as LIST with %d items", self.query_id, len(sensor_data))
+                    _LOGGER.info("Sensor %s: List items: %s", self.query_id, sensor_data)
                     # If it's a list, calculate the total value
                     total = self._calculate_list_total(sensor_data)
-                    _LOGGER.debug("Sensor %s list total: %s", self.query_id, total)
+                    _LOGGER.info("Sensor %s: List total calculated: %s", self.query_id, total)
+                    _LOGGER.info("=== SENSOR DEBUG END ===")
                     return total
                     
                 elif isinstance(sensor_data, str):
+                    _LOGGER.info("Sensor %s: Processing as STRING: %s", self.query_id, sensor_data)
                     # Try to parse string as numeric
                     numeric_value = self._convert_to_numeric(sensor_data)
                     if numeric_value is not None:
-                        _LOGGER.debug("Sensor %s string value: %s", self.query_id, numeric_value)
+                        _LOGGER.info("Sensor %s: String converted to numeric: %s", self.query_id, numeric_value)
+                        _LOGGER.info("=== SENSOR DEBUG END ===")
                         return numeric_value
                     _LOGGER.warning("Sensor %s: Could not parse string value: %s", self.query_id, sensor_data)
+                    _LOGGER.info("=== SENSOR DEBUG END ===")
                     return 0
                     
                 else:
                     _LOGGER.warning("Sensor %s: Unsupported data type: %s", self.query_id, type(sensor_data))
+                    _LOGGER.info("=== SENSOR DEBUG END ===")
                     return 0
                     
             except Exception as e:
                 _LOGGER.error("Sensor %s: Error processing data: %s", self.query_id, e)
+                _LOGGER.info("=== SENSOR DEBUG END ===")
                 return 0
         else:
-            _LOGGER.debug("Sensor %s no data available", self.query_id)
+            _LOGGER.warning("Sensor %s: No data available in coordinator", self.query_id)
+            if self.coordinator.data:
+                _LOGGER.info("Coordinator data keys: %s", list(self.coordinator.data.keys()))
+                if "sensors" in self.coordinator.data:
+                    _LOGGER.info("Available sensor IDs: %s", list(self.coordinator.data["sensors"].keys()))
+            _LOGGER.info("=== SENSOR DEBUG END ===")
         return 0
 
     def _convert_to_numeric(self, value) -> float | None:

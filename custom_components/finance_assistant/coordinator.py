@@ -100,14 +100,27 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
                         # Fetch sensor data for SENSOR queries
                         if output_type == "SENSOR":
                             sensor_url = f"{self.base_url}{API_ENDPOINT_SENSOR.format(query_id=query_id)}"
-                            _LOGGER.debug("Fetching sensor data from: %s", sensor_url)
+                            _LOGGER.info("=== SENSOR FETCH DEBUG START ===")
+                            _LOGGER.info("Fetching sensor data from: %s", sensor_url)
+                            _LOGGER.info("Query: %s (%s) - %s", query_id, query_name, output_type)
                             async with session.get(sensor_url, headers=headers) as response:
                                 if response.status == 200:
                                     sensor_data = await response.json()
                                     data["sensors"][query_id] = sensor_data
-                                    _LOGGER.debug("Sensor data for %s (%s): %s", query_id, query_name, sensor_data)
+                                    _LOGGER.info("Sensor data for %s (%s): %s", query_id, query_name, sensor_data)
+                                    _LOGGER.info("Sensor data type: %s", type(sensor_data))
+                                    if isinstance(sensor_data, dict):
+                                        _LOGGER.info("Sensor dict keys: %s", list(sensor_data.keys()))
+                                    elif isinstance(sensor_data, list):
+                                        _LOGGER.info("Sensor list length: %d", len(sensor_data))
+                                        if len(sensor_data) > 0:
+                                            _LOGGER.info("First item type: %s", type(sensor_data[0]))
+                                            if isinstance(sensor_data[0], dict):
+                                                _LOGGER.info("First item keys: %s", list(sensor_data[0].keys()))
+                                    _LOGGER.info("=== SENSOR FETCH DEBUG END ===")
                                 else:
                                     _LOGGER.warning("Failed to fetch sensor data for %s (%s): %s", query_id, query_name, response.status)
+                                    _LOGGER.info("=== SENSOR FETCH DEBUG END ===")
                         
                         # Fetch calendar data for CALENDAR queries
                         elif output_type == "CALENDAR":
