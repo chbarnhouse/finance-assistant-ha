@@ -68,12 +68,17 @@ class FinanceAssistantCalendar(CalendarEntity):
     @property
     def events(self) -> list[CalendarEvent]:
         """Return all events in the calendar."""
+        _LOGGER.debug("Calendar %s: Checking for events", self.query_id)
+        _LOGGER.debug("Calendar %s: Coordinator data keys: %s", self.query_id, list(self.coordinator.data.keys()) if self.coordinator.data else "None")
+        
         if (
             self.coordinator.data
             and "calendars" in self.coordinator.data
             and self.query_id in self.coordinator.data["calendars"]
         ):
             calendar_data = self.coordinator.data["calendars"][self.query_id]
+            _LOGGER.debug("Calendar %s: Found calendar data: %s", self.query_id, type(calendar_data))
+            _LOGGER.debug("Calendar %s: Calendar data content: %s", self.query_id, calendar_data)
             events = []
             
             # Handle empty data gracefully
@@ -167,13 +172,19 @@ class FinanceAssistantCalendar(CalendarEntity):
             return None
         
         try:
+            # Import dt_util for timezone handling
+            from homeassistant.util import dt as dt_util
             # Handle datetime objects directly
             if isinstance(date_value, datetime):
+                # Ensure timezone awareness
+                if date_value.tzinfo is None:
+                    return dt_util.as_local(date_value)
                 return date_value
             
             # Handle date objects
             if hasattr(date_value, 'date'):  # datetime.date objects
-                return datetime.combine(date_value, datetime.min.time())
+                naive_dt = datetime.combine(date_value, datetime.min.time())
+                return dt_util.as_local(naive_dt)
             
             # Handle string dates
             if isinstance(date_value, str):
@@ -194,14 +205,16 @@ class FinanceAssistantCalendar(CalendarEntity):
                 
                 for fmt in date_formats:
                     try:
-                        return datetime.strptime(date_str, fmt)
+                        naive_dt = datetime.strptime(date_str, fmt)
+                        return dt_util.as_local(naive_dt)
                     except ValueError:
                         continue
                 
                 # If no format works, try to parse with dateutil (if available)
                 try:
                     from dateutil import parser
-                    return parser.parse(date_str)
+                    naive_dt = parser.parse(date_str)
+                    return dt_util.as_local(naive_dt)
                 except ImportError:
                     pass
                 
@@ -214,7 +227,8 @@ class FinanceAssistantCalendar(CalendarEntity):
                     # Try as Unix timestamp (seconds since epoch)
                     if date_value > 1e10:  # Likely milliseconds
                         date_value = date_value / 1000
-                    return datetime.fromtimestamp(date_value)
+                    naive_dt = datetime.fromtimestamp(date_value)
+                    return dt_util.as_local(naive_dt)
                 except (ValueError, OSError):
                     pass
             
@@ -231,7 +245,8 @@ class FinanceAssistantCalendar(CalendarEntity):
                     minute = int(date_value.get("minute", 0))
                     second = int(date_value.get("second", 0))
                     
-                    return datetime(year, month, day, hour, minute, second)
+                    naive_dt = datetime(year, month, day, hour, minute, second)
+                    return dt_util.as_local(naive_dt)
                 
                 # Try to extract from other common fields
                 for key in ["date", "time", "timestamp"]:

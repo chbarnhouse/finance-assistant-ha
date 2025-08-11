@@ -122,9 +122,13 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
                 
                 for query in calendar_queries:
                     try:
+                        _LOGGER.debug("Fetching calendar data for query: %s (%s)", query["id"], query.get("name", "Unknown"))
                         calendar_data = await self.get_calendar_data(query["id"])
                         if calendar_data:
                             data["calendars"][str(query["id"])] = calendar_data
+                            _LOGGER.debug("Calendar data for query %s: %d events", query["id"], len(calendar_data) if isinstance(calendar_data, list) else 0)
+                        else:
+                            _LOGGER.debug("No calendar data returned for query %s", query["id"])
                     except Exception as e:
                         _LOGGER.warning("Failed to fetch calendar data for query %s: %s", query["id"], e)
                         # Continue with other queries
