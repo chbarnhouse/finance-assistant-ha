@@ -32,13 +32,26 @@ async def async_setup_entry(
     """Set up Finance Assistant sensor based on a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
-    # Create sensors for each SENSOR query
+    # Define dashboard sensor names to avoid conflicts
+    dashboard_sensor_names = {
+        "Net Worth",
+        "Total Assets", 
+        "Total Liabilities",
+        "Total Account Balance"
+    }
+    
+    # Create sensors for each SENSOR query (skip conflicting names)
     sensors = []
     if coordinator.data and "queries" in coordinator.data:
         for query in coordinator.data["queries"]:
             if query.get("output_type") == "SENSOR":
-                sensor = FinanceAssistantSensor(coordinator, query)
-                sensors.append(sensor)
+                # Skip queries that have the same name as dashboard sensors
+                query_name = query.get("ha_friendly_name") or query.get("name", "")
+                if query_name not in dashboard_sensor_names:
+                    sensor = FinanceAssistantSensor(coordinator, query)
+                    sensors.append(sensor)
+                else:
+                    _LOGGER.debug("Skipping query sensor '%s' - conflicts with dashboard sensor", query_name)
     
     # Add dashboard sensors for real-time financial data
     dashboard_sensors = [
