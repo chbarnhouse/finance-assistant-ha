@@ -228,14 +228,25 @@ class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
         """Get calendar data for a specific query with enhanced error handling."""
         try:
             async with aiohttp.ClientSession() as session:
+                # Calculate date range for future transactions (current date to 3 months in the future)
+                from datetime import datetime, timedelta
+                today = datetime.now().date()
+                future_date = today + timedelta(days=90)  # 3 months ahead
+                
+                # Add date range parameters to get future scheduled transactions
+                params = {
+                    "start_date": today.isoformat(),
+                    "end_date": future_date.isoformat()
+                }
+                
                 url = f"{self.base_url}{API_ENDPOINT_CALENDAR.format(query_id=query_id)}"
                 headers = {"X-API-Key": self.api_key}
                 
                 timeout = aiohttp.ClientTimeout(total=15)  # 15 second timeout for individual queries
-                async with session.get(url, headers=headers, timeout=timeout) as response:
+                async with session.get(url, headers=headers, params=params, timeout=timeout) as response:
                     if response.status == 200:
                         data = await response.json()
-                        _LOGGER.debug("Calendar data for query %s: %s events", query_id, len(data) if isinstance(data, list) else 0)
+                        _LOGGER.debug("Calendar data for query %s: %s events (including future transactions)", query_id, len(data) if isinstance(data, list) else 0)
                         return data if isinstance(data, list) else []
                     elif response.status == 404:
                         _LOGGER.warning("Query %s not found", query_id)

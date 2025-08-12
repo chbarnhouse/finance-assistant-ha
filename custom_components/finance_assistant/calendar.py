@@ -96,12 +96,10 @@ class FinanceAssistantCalendar(CalendarEntity):
                         _LOGGER.warning("Calendar %s: Event missing start date, skipping", self.query_id)
                         continue
                     
-                    # Parse end date, with fallback to start date + 1 hour
-                    end_date = self._parse_date(event_data.get("end"))
-                    if not end_date:
-                        # If no end date, set to start date + 1 hour (default duration)
-                        end_date = start_date + timedelta(hours=1)
-                        _LOGGER.debug("Calendar %s: Event missing end date, using start + 1 hour", self.query_id)
+                    # For financial transactions, make them all-day events
+                    # Set end date to same day (all-day event)
+                    end_date = start_date
+                    _LOGGER.debug("Calendar %s: Creating all-day event for %s", self.query_id, start_date)
                     
                     # Create calendar event with enhanced attributes
                     event = CalendarEvent(
@@ -135,6 +133,16 @@ class FinanceAssistantCalendar(CalendarEntity):
             if field in event_data and event_data[field]:
                 summary = str(event_data[field])
                 if summary.strip():
+                    # If the title is generic (like "High Value Transaction: $X"), enhance it
+                    if "Transaction:" in summary and "amount" in event_data:
+                        amount = event_data["amount"]
+                        if isinstance(amount, (int, float)):
+                            # Use the real amount from the data, not the generic title
+                            formatted_amount = f"${abs(amount):,.2f}"
+                            if amount < 0:
+                                return f"Expense: {formatted_amount}"
+                            else:
+                                return f"Income: {formatted_amount}"
                     return summary.strip()
         
         # If no summary found, try to create one from transaction data
