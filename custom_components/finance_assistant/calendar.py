@@ -97,24 +97,17 @@ class FinanceAssistantCalendar(CalendarEntity):
                         continue
                     
                     # For financial transactions, make them all-day events
-                    # The backend now sends start at midnight and end at next day
-                    # We need to ensure proper timezone handling
+                    # Home Assistant requires date objects (not datetime) for all-day events
                     from datetime import timedelta
                     
-                    # If the backend sent a start time, use it; otherwise create midnight start
-                    if start_date.hour == 0 and start_date.minute == 0:
-                        # Backend already sent midnight start, use it
-                        event_start = start_date
-                        event_end = start_date + timedelta(days=1)
-                    else:
-                        # Convert to midnight for all-day display
-                        event_start = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
-                        event_end = event_start + timedelta(days=1)
+                    # Convert to date objects for all-day display
+                    event_start = start_date.date()
+                    event_end = event_start + timedelta(days=1)
                     
                     _LOGGER.debug("Calendar %s: Creating all-day event for %s (end: %s)", self.query_id, event_start, event_end)
                     
-                    # Create calendar event with enhanced attributes
-                    # Home Assistant will display this as all-day when start is midnight and end is next day
+                    # Create calendar event with date objects for all-day display
+                    # Home Assistant will display this as "All Day" when using date objects
                     
                     event = CalendarEvent(
                         summary=self._get_event_summary(event_data),
