@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-__version__ = "1.0.49"  # Force update to resolve version mismatch
+__version__ = "1.0.50"  # Match HACS release version
 
 import voluptuous as vol
 
