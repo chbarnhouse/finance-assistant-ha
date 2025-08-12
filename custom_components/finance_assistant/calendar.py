@@ -97,19 +97,29 @@ class FinanceAssistantCalendar(CalendarEntity):
                         continue
                     
                     # For financial transactions, make them all-day events
-                    # Home Assistant requires end date to be NEXT day for all-day events
+                    # The backend now sends start at midnight and end at next day
+                    # We need to ensure proper timezone handling
                     from datetime import timedelta
-                    end_date = start_date + timedelta(days=1)
-                    _LOGGER.debug("Calendar %s: Creating all-day event for %s (end: %s)", self.query_id, start_date, end_date)
+                    
+                    # If the backend sent a start time, use it; otherwise create midnight start
+                    if start_date.hour == 0 and start_date.minute == 0:
+                        # Backend already sent midnight start, use it
+                        event_start = start_date
+                        event_end = start_date + timedelta(days=1)
+                    else:
+                        # Convert to midnight for all-day display
+                        event_start = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                        event_end = event_start + timedelta(days=1)
+                    
+                    _LOGGER.debug("Calendar %s: Creating all-day event for %s (end: %s)", self.query_id, event_start, event_end)
                     
                     # Create calendar event with enhanced attributes
-                    # Note: CalendarEvent doesn't have an all_day parameter
-                    # For all-day events, we set end_date = start_date above
+                    # Home Assistant will display this as all-day when start is midnight and end is next day
                     
                     event = CalendarEvent(
                         summary=self._get_event_summary(event_data),
-                        start=start_date,
-                        end=end_date,
+                        start=event_start,
+                        end=event_end,
                         description=self._get_event_description(event_data),
                         location=self._get_event_location(event_data),
                         uid=str(event_data.get("uid", event_data.get("id", ""))),
