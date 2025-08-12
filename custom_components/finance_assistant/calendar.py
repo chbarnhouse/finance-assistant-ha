@@ -97,9 +97,10 @@ class FinanceAssistantCalendar(CalendarEntity):
                         continue
                     
                     # For financial transactions, make them all-day events
-                    # Set end date to same day (all-day event)
-                    end_date = start_date
-                    _LOGGER.debug("Calendar %s: Creating all-day event for %s", self.query_id, start_date)
+                    # Home Assistant requires end date to be NEXT day for all-day events
+                    from datetime import timedelta
+                    end_date = start_date + timedelta(days=1)
+                    _LOGGER.debug("Calendar %s: Creating all-day event for %s (end: %s)", self.query_id, start_date, end_date)
                     
                     # Create calendar event with enhanced attributes
                     # Note: CalendarEvent doesn't have an all_day parameter
