@@ -326,7 +326,16 @@ class FinanceAssistantCalendar(CalendarEntity):
         filtered_events = []
         for event in events:
             # Check if event overlaps with the specified range
-            if (event.start <= end_date and event.end >= start_date):
+            # Convert datetime objects to date objects for comparison if needed
+            event_start = event.start
+            event_end = event.end
+            
+            # Convert request dates to date objects for comparison
+            request_start = start_date.date() if hasattr(start_date, 'date') else start_date
+            request_end = end_date.date() if hasattr(end_date, 'date') else end_date
+            
+            # Check if event overlaps with the specified range
+            if (event_start <= request_end and event_end >= request_start):
                 filtered_events.append(event)
         
         _LOGGER.debug("Calendar %s: Returning %d events between %s and %s", 
