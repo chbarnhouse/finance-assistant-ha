@@ -102,8 +102,8 @@ class FinanceAssistantCalendar(CalendarEntity):
                     _LOGGER.debug("Calendar %s: Creating all-day event for %s", self.query_id, start_date)
                     
                     # Create calendar event with enhanced attributes
-                    # Check if the backend specified all_day, otherwise default to True for financial transactions
-                    all_day = event_data.get("all_day", True)
+                    # Note: CalendarEvent doesn't have an all_day parameter
+                    # For all-day events, we set end_date = start_date above
                     
                     event = CalendarEvent(
                         summary=self._get_event_summary(event_data),
@@ -112,7 +112,6 @@ class FinanceAssistantCalendar(CalendarEntity):
                         description=self._get_event_description(event_data),
                         location=self._get_event_location(event_data),
                         uid=str(event_data.get("uid", event_data.get("id", ""))),
-                        all_day=all_day,
                     )
                     
                     events.append(event)
