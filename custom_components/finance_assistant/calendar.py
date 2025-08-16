@@ -12,11 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    ATTR_QUERY_ID,
-    ATTR_QUERY_NAME,
-    ATTR_QUERY_DESCRIPTION,
     ATTR_LAST_UPDATED,
-    ATTR_QUERY_TYPE,
     DEVICE_INFO,
     DOMAIN,
 )
@@ -74,191 +70,6 @@ class FinanceAssistantCalendar(CalendarEntity):
         
         return []
 
-    def _get_event_summary(self, event_data: dict) -> str:
-        """Extract event summary from event data."""
-        # Try multiple possible summary fields
-        summary_fields = ["title", "summary", "name", "description", "memo"]
-        
-        for field in summary_fields:
-            if field in event_data and event_data[field]:
-                summary = str(event_data[field])
-                if summary.strip():
-                    # If the title is generic (like "High Value Transaction: $X"), enhance it
-                    if "Transaction:" in summary and "amount" in event_data:
-                        amount = event_data["amount"]
-                        if isinstance(amount, (int, float)):
-                            # Use the real amount from the data, not the generic title
-                            formatted_amount = f"${abs(amount):,.2f}"
-                            if amount < 0:
-                                return f"Expense: {formatted_amount}"
-                            else:
-                                return f"Income: {formatted_amount}"
-                    return summary.strip()
-        
-        # If no summary found, try to create one from transaction data
-        if "amount" in event_data:
-            amount = event_data["amount"]
-            if isinstance(amount, (int, float)):
-                formatted_amount = f"${abs(amount):,.2f}"
-                if amount < 0:
-                    return f"Expense: {formatted_amount}"
-                else:
-                    return f"Income: {formatted_amount}"
-            else:
-                return f"Transaction: {amount}"
-        
-        # Final fallback
-        return f"{self.query.get('name', 'Finance Event')}"
-
-    def _get_event_description(self, event_data: dict) -> str | None:
-        """Extract event description from event data."""
-        # Try multiple possible description fields
-        desc_fields = ["description", "memo", "notes", "details", "summary"]
-        
-        for field in desc_fields:
-            if field in event_data and event_data[field]:
-                desc = str(event_data[field])
-                if desc.strip():
-                    return desc.strip()
-        
-        # If no description, try to create one from transaction data
-        parts = []
-        
-        # Add payee if available
-        if event_data.get("payee"):
-            parts.append(f"Payee: {event_data['payee']}")
-        
-        # Add category if available
-        if event_data.get("category"):
-            parts.append(f"Category: {event_data['category']}")
-        
-        # Add account if available
-        if event_data.get("account"):
-            parts.append(f"Account: {event_data['account']}")
-        
-        # Add amount if available
-        if event_data.get("amount"):
-            amount = event_data["amount"]
-            if isinstance(amount, (int, float)):
-                formatted_amount = f"${amount:,.2f}"
-                parts.append(f"Amount: {formatted_amount}")
-        
-        return " | ".join(parts) if parts else None
-
-    def _get_event_location(self, event_data: dict) -> str | None:
-        """Extract event location from event data."""
-        # Try multiple possible location fields
-        location_fields = ["location", "place", "address", "venue"]
-        
-        for field in location_fields:
-            if field in event_data and event_data[field]:
-                location = str(event_data[field])
-                if location.strip():
-                    return location.strip()
-        
-        # If no location, try to use payee as location
-        if event_data.get("payee"):
-            return event_data["payee"]
-        
-        return None
-
-    def _parse_date(self, date_value) -> datetime | None:
-        """Parse date from various formats with enhanced error handling."""
-        if not date_value:
-            return None
-        
-        try:
-            # Import dt_util for timezone handling
-            from homeassistant.util import dt as dt_util
-            # Handle datetime objects directly
-            if isinstance(date_value, datetime):
-                # Ensure timezone awareness
-                if date_value.tzinfo is None:
-                    return dt_util.as_local(date_value)
-                return date_value
-            
-            # Handle date objects
-            if hasattr(date_value, 'date'):  # datetime.date objects
-                naive_dt = datetime.combine(date_value, datetime.min.time())
-                return dt_util.as_local(naive_dt)
-            
-            # Handle string dates
-            if isinstance(date_value, str):
-                # Remove any timezone info for now (can be enhanced later)
-                date_str = date_value.split('+')[0].split('Z')[0].strip()
-                
-                # Try multiple date formats
-                date_formats = [
-                    "%Y-%m-%dT%H:%M:%S",      # ISO format without timezone
-                    "%Y-%m-%d %H:%M:%S",      # Space-separated format
-                    "%Y-%m-%dT%H:%M",         # ISO format without seconds
-                    "%Y-%m-%d %H:%M",         # Space-separated without seconds
-                    "%Y-%m-%d",               # Date only
-                    "%m/%d/%Y",               # US format
-                    "%d/%m/%Y",               # European format
-                    "%Y-%m-%d %H:%M:%S.%f",  # With microseconds
-                ]
-                
-                for fmt in date_formats:
-                    try:
-                        naive_dt = datetime.strptime(date_str, fmt)
-                        return dt_util.as_local(naive_dt)
-                    except ValueError:
-                        continue
-                
-                # If no format works, try to parse with dateutil (if available)
-                try:
-                    from dateutil import parser
-                    naive_dt = parser.parse(date_str)
-                    return dt_util.as_local(naive_dt)
-                except ImportError:
-                    pass
-                
-                _LOGGER.warning("Calendar %s: Could not parse date string: %s", self.query_id, date_value)
-                return None
-            
-            # Handle numeric timestamps
-            if isinstance(date_value, (int, float)):
-                try:
-                    # Try as Unix timestamp (seconds since epoch)
-                    if date_value > 1e10:  # Likely milliseconds
-                        date_value = date_value / 1000
-                    naive_dt = datetime.fromtimestamp(date_value)
-                    return dt_util.as_local(naive_dt)
-                except (ValueError, OSError):
-                    pass
-            
-            # Handle dict objects with date components
-            if isinstance(date_value, dict):
-                # Look for common date fields
-                if "year" in date_value and "month" in date_value and "day" in date_value:
-                    year = int(date_value["year"])
-                    month = int(date_value["month"])
-                    day = int(date_value["day"])
-                    
-                    # Handle optional time components
-                    hour = int(date_value.get("hour", 0))
-                    minute = int(date_value.get("minute", 0))
-                    second = int(date_value.get("second", 0))
-                    
-                    naive_dt = datetime(year, month, day, hour, minute, second)
-                    return dt_util.as_local(naive_dt)
-                
-                # Try to extract from other common fields
-                for key in ["date", "time", "timestamp"]:
-                    if key in date_value:
-                        parsed = self._parse_date(date_value[key])
-                        if parsed:
-                            return parsed
-            
-            _LOGGER.warning("Calendar %s: Unsupported date format: %s (type: %s)", 
-                           self.query_id, date_value, type(date_value))
-            return None
-            
-        except Exception as e:
-            _LOGGER.error("Calendar %s: Error parsing date %s: %s", self.query_id, date_value, e)
-            return None
-
     async def async_get_events(
         self, hass: HomeAssistant, start_date: datetime, end_date: datetime
     ) -> list[CalendarEvent]:
@@ -281,66 +92,18 @@ class FinanceAssistantCalendar(CalendarEntity):
             if (event_start <= request_end and event_end >= request_start):
                 filtered_events.append(event)
         
-        _LOGGER.debug("Calendar %s: Returning %d events between %s and %s", 
-                     self.query_id, len(filtered_events), start_date, end_date)
+        _LOGGER.debug("Finance Assistant Calendar: Returning %d events between %s and %s", 
+                     len(filtered_events), start_date, end_date)
         return filtered_events
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return entity specific state attributes."""
-        if not self.coordinator.data or "calendars" not in self.coordinator.data:
-            return {}
-            
-        calendar_data = self.coordinator.data["calendars"].get(self.query_id, [])
-        
         attributes = {
-            ATTR_QUERY_ID: self.query_id,
-            ATTR_QUERY_NAME: self.query.get("name", ""),
-            ATTR_QUERY_DESCRIPTION: self.query.get("description", ""),
-            ATTR_QUERY_TYPE: self.query.get("query_type", ""),
             ATTR_LAST_UPDATED: self.coordinator.last_update_success,
-            "data_source": "query",
-            "event_count": len(calendar_data) if isinstance(calendar_data, list) else 0,
+            "data_source": "finance_assistant",
+            "event_count": 0,  # No events yet
         }
-        
-        # Add query-specific attributes
-        if self.query.get("ha_entity_id"):
-            attributes["entity_id"] = self.query["ha_entity_id"]
-        
-        # Add calendar data context if available
-        if calendar_data and isinstance(calendar_data, list):
-            # Add sample event data (first few events)
-            if len(calendar_data) > 0:
-                sample_events = []
-                for event in calendar_data[:3]:  # First 3 events
-                    sample_event = {
-                        "summary": self._get_event_summary(event),
-                        "start": str(event.get("start", event.get("dtstart", ""))),
-                        "end": str(event.get("end", event.get("dtend", ""))),
-                    }
-                    sample_events.append(sample_event)
-                attributes["sample_events"] = sample_events
-            
-            # Add event statistics
-            if len(calendar_data) > 0:
-                try:
-                    # Calculate date range of events
-                    dates = []
-                    for event in calendar_data:
-                        start_date = self._parse_date(event.get("start") or event.get("dtstart"))
-                        if start_date:
-                            dates.append(start_date)
-                    
-                    if dates:
-                        min_date = min(dates)
-                        max_date = max(dates)
-                        attributes.update({
-                            "earliest_event": min_date.isoformat(),
-                            "latest_event": max_date.isoformat(),
-                            "date_range_days": (max_date - min_date).days,
-                        })
-                except Exception as e:
-                    _LOGGER.debug("Calendar %s: Could not calculate event statistics: %s", self.query_id, e)
         
         return attributes
 
