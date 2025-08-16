@@ -1,5 +1,7 @@
 """Constants for the Finance Assistant integration."""
+from homeassistant.const import Platform
 
+# Domain
 DOMAIN = "finance_assistant"
 
 # Configuration keys
@@ -8,28 +10,120 @@ CONF_PORT = "port"
 CONF_API_KEY = "api_key"
 CONF_SSL = "ssl"
 CONF_SCAN_INTERVAL = "scan_interval"
+CONF_NAME = "name"
 
-# Defaults
-DEFAULT_SCAN_INTERVAL = 300  # 5 minutes
+# Default values
 DEFAULT_PORT = 8080
+DEFAULT_SCAN_INTERVAL = 30
+DEFAULT_NAME = "Finance Assistant"
+
+# Platforms
+PLATFORMS = [Platform.SENSOR, Platform.CALENDAR]
+
+# Enhanced configuration options
+CONF_ENABLE_ENHANCED_SENSORS = "enable_enhanced_sensors"
+CONF_ENABLE_ENHANCED_CALENDARS = "enable_enhanced_calendars"
+CONF_ENABLE_FINANCIAL_HEALTH = "enable_financial_health"
+CONF_ENABLE_RISK_ASSESSMENT = "enable_risk_assessment"
+CONF_ENABLE_CASH_FLOW_FORECAST = "enable_cash_flow_forecast"
+CONF_ENABLE_CRITICAL_EXPENSES = "enable_critical_expenses"
+CONF_ENABLE_RECURRING_ANALYSIS = "enable_recurring_analysis"
+CONF_UPDATE_INTERVAL_FINANCIAL = "update_interval_financial"
+CONF_UPDATE_INTERVAL_CALENDAR = "update_interval_calendar"
+
+# Default enhanced options
+DEFAULT_ENABLE_ENHANCED_SENSORS = True
+DEFAULT_ENABLE_ENHANCED_CALENDARS = True
+DEFAULT_ENABLE_FINANCIAL_HEALTH = True
+DEFAULT_ENABLE_RISK_ASSESSMENT = True
+DEFAULT_ENABLE_CASH_FLOW_FORECAST = True
+DEFAULT_ENABLE_CRITICAL_EXPENSES = True
+DEFAULT_ENABLE_RECURRING_ANALYSIS = True
+DEFAULT_UPDATE_INTERVAL_FINANCIAL = 15
+DEFAULT_UPDATE_INTERVAL_CALENDAR = 30
 
 # API endpoints
-API_ENDPOINT_QUERIES = "/api/ha/queries/"
-API_ENDPOINT_SENSOR = "/api/ha/sensor/{query_id}/"
-API_ENDPOINT_CALENDAR = "/api/ha/calendar/{query_id}/"
+API_ENDPOINT_HEALTH = "/api/health/"
+API_ENDPOINT_ENHANCED_CATEGORIES = "/api/enhanced/categories/"
+API_ENDPOINT_ENHANCED_PAYEES = "/api/enhanced/payees/"
+API_ENDPOINT_ENHANCED_ACCOUNTS = "/api/enhanced/accounts/"
+API_ENDPOINT_RECURRING_TRANSACTIONS = "/api/recurring-transactions/"
+API_ENDPOINT_ENHANCED_TRANSACTIONS = "/api/enhanced/transactions/"
 
-# Entity attributes
-ATTR_QUERY_ID = "query_id"
-ATTR_QUERY_NAME = "query_name"
-ATTR_QUERY_DESCRIPTION = "query_description"
-ATTR_LAST_UPDATED = "last_updated"
-ATTR_DATA_SOURCE = "data_source"
-ATTR_QUERY_TYPE = "query_type"
+# Transaction statuses
+TRANSACTION_STATUS_REAL = "real"
+TRANSACTION_STATUS_PENDING = "pending"
+TRANSACTION_STATUS_SCHEDULED = "scheduled"
+TRANSACTION_STATUS_CANCELLED = "cancelled"
 
-# Device info
-DEVICE_INFO = {
-    "identifiers": {(DOMAIN, "finance_assistant")},
-    "name": "Finance Assistant",
-    "manufacturer": "Finance Assistant",
-    "model": "Finance Assistant",
-} 
+# Transaction source types
+TRANSACTION_SOURCE_YNAB = "ynab"
+TRANSACTION_SOURCE_GENERATED = "generated"
+TRANSACTION_SOURCE_MANUAL = "manual"
+TRANSACTION_SOURCE_SCHEDULED = "scheduled"
+
+# Recurring transaction frequencies
+RECURRING_FREQUENCY_DAILY = "daily"
+RECURRING_FREQUENCY_WEEKLY = "weekly"
+RECURRING_FREQUENCY_BIWEEKLY = "biweekly"
+RECURRING_FREQUENCY_MONTHLY = "monthly"
+RECURRING_FREQUENCY_QUARTERLY = "quarterly"
+RECURRING_FREQUENCY_YEARLY = "yearly"
+
+# Financial health score ranges
+FINANCIAL_HEALTH_EXCELLENT = 80
+FINANCIAL_HEALTH_GOOD = 60
+FINANCIAL_HEALTH_FAIR = 40
+FINANCIAL_HEALTH_POOR = 20
+
+# Risk assessment levels
+RISK_LEVEL_LOW = "low"
+RISK_LEVEL_MODERATE = "moderate"
+RISK_LEVEL_HIGH = "high"
+RISK_LEVEL_VERY_HIGH = "very_high"
+RISK_LEVEL_CRITICAL = "critical"
+
+# Calendar event colors
+CALENDAR_COLOR_INCOME = "#4CAF50"  # Green
+CALENDAR_COLOR_EXPENSE = "#F44336"  # Red
+CALENDAR_COLOR_PENDING = "#FFC107"  # Amber
+CALENDAR_COLOR_SCHEDULED = "#2196F3"  # Blue
+CALENDAR_COLOR_RECURRING = "#FF9800"  # Orange
+CALENDAR_COLOR_NEUTRAL = "#9E9E9E"  # Grey
+
+# Update intervals (in minutes)
+MIN_UPDATE_INTERVAL = 5
+MAX_UPDATE_INTERVAL = 120
+DEFAULT_FINANCIAL_UPDATE_INTERVAL = 15
+DEFAULT_CALENDAR_UPDATE_INTERVAL = 30
+
+# API timeouts (in seconds)
+API_TIMEOUT_DEFAULT = 30
+API_TIMEOUT_HEALTH_CHECK = 10
+API_TIMEOUT_DATA_FETCH = 60
+
+# Data refresh intervals (in minutes)
+DATA_REFRESH_INTERVAL_FINANCIAL = 15
+DATA_REFRESH_INTERVAL_CALENDAR = 30
+DATA_REFRESH_INTERVAL_ALERTS = 5
+
+# Financial thresholds
+CRITICAL_EXPENSE_THRESHOLD = 5000
+LOW_SAVINGS_RATE_THRESHOLD = 10
+HIGH_OBLIGATION_RATIO_THRESHOLD = 60
+NEGATIVE_CASH_FLOW_THRESHOLD = -2000
+
+# Calendar date ranges
+CALENDAR_DAYS_PAST = 30
+CALENDAR_DAYS_FUTURE = 90
+CALENDAR_DAYS_RECURRING = 365
+
+# Sensor attributes
+SENSOR_ATTR_LAST_UPDATE = "last_update"
+SENSOR_ATTR_DATA_SOURCE = "data_source"
+SENSOR_ATTR_CONFIDENCE_LEVEL = "confidence_level"
+SENSOR_ATTR_RECOMMENDATIONS = "recommendations"
+SENSOR_ATTR_ALERTS = "alerts"
+SENSOR_ATTR_TRENDS = "trends"
+SENSOR_ATTR_RISK_FACTORS = "risk_factors"
+SENSOR_ATTR_MITIGATION_STRATEGIES = "mitigation_strategies" 

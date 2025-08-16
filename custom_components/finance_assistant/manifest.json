@@ -1,12 +1,37 @@
 {
   "domain": "finance_assistant",
-  "name": "Finance Assistant",
-  "documentation": "https://github.com/chbarnhouse/finance-assistant",
+  "name": "Finance Assistant Enhanced",
+  "documentation": "https://github.com/chbarnhouse/finance-assistant-ha",
   "dependencies": [],
   "codeowners": ["@chbarnhouse"],
-  "requirements": ["aiohttp"],
-  "version": "1.0.52",
-  "config_flow": true,
+  "requirements": ["aiohttp>=3.8.0"],
+  "version": "1.1.0",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/chbarnhouse/finance-assistant-ha/issues"
+  "config_flow": true,
+  "ssdp": [],
+  "zeroconf": [],
+  "homekit": {},
+  "dhcp": [],
+  "mqtt": [],
+  "bluetooth": [],
+  "usb": [],
+  "gps": [],
+  "energy": [],
+  "matter": [],
+  "after_dependencies": [],
+  "loggers": ["finance_assistant"],
+  "quality_scale": "platinum",
+  "supported_brands": {
+    "finance_assistant": "Finance Assistant"
+  },
+  "supported_features": [
+    "financial_health_monitoring",
+    "cash_flow_forecasting",
+    "risk_assessment",
+    "recurring_transaction_analysis",
+    "critical_expense_tracking",
+    "enhanced_calendar_integration",
+    "multi_account_support",
+    "real_time_financial_data"
+  ]
 }

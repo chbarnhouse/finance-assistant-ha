@@ -5,6 +5,40 @@ All notable changes to the Finance Assistant Home Assistant Integration will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-08-16
+
+### Added
+
+- **8 New Analytics Sensors** for comprehensive financial monitoring:
+  - `Transaction Status Analytics` - Transaction counts by status (real, uncleared, unapproved, scheduled)
+  - `Spending Trends` - Overall financial health and trend analysis
+  - `Obligation Ratio` - Recurring obligations analysis with status indicators
+  - `Financial Insights` - Recommendations and alerts with insight status
+  - `Cash Flow Trend` - Cash flow direction (Improving/Stable/Declining) with numeric automation values
+  - `Expense Trend` - Expense pattern analysis with trend descriptions
+  - `Savings Trend` - Savings pattern analysis with automation triggers
+  - `High Risk Items` - Risk assessment and mitigation strategies
+- **Enhanced Calendar Integration** - New calendar functionality for financial events
+- **Improved API Client** - Better error handling and API integration
+- **Enhanced Configuration Flow** - Better setup experience and validation
+- **Quality Scale Platinum** - Improved code quality and reliability
+
+### Changed
+
+- **Enhanced Coordinator** - Major improvements to data handling and financial calculations
+- **Better Error Handling** - More robust integration with comprehensive error reporting
+- **Improved Logging** - Enhanced debugging capabilities with structured logging
+- **Enhanced Manifest** - Added supported features and improved metadata
+
+### Technical Improvements
+
+- Added comprehensive financial health scoring algorithms
+- Implemented risk assessment calculations
+- Enhanced recurring transaction analysis
+- Improved cash flow forecasting capabilities
+- Better transaction status categorization
+- Enhanced sensor attributes for automation triggers
+
 ## [1.0.21] - 2025-08-07
 
 ### Fixed

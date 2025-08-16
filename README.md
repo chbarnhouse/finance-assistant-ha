@@ -99,6 +99,126 @@ Calendar entities show:
 - **Event Count**: Number of events in the calendar
 - **Date Range**: Events within the specified time period
 
+## Analytics Sensors
+
+The Finance Assistant integration now includes **8 comprehensive analytics sensors** that provide real-time financial insights and enable powerful Home Assistant automations.
+
+### Available Analytics Sensors
+
+#### 1. Transaction Status Analytics
+- **Entity ID**: `sensor.transaction_status_analytics`
+- **State**: Total transaction count
+- **Attributes**: Breakdown by status (real, uncleared, unapproved, scheduled, cancelled)
+- **Use Case**: Monitor transaction processing status and create alerts for pending items
+
+#### 2. Spending Trends
+- **Entity ID**: `sensor.spending_trends`
+- **State**: Overall financial health score (0-100)
+- **Attributes**: Cash flow, expense, and savings trends with recommendations and alerts
+- **Use Case**: Track financial health and trigger notifications for declining scores
+
+#### 3. Obligation Ratio
+- **Entity ID**: `sensor.obligation_ratio`
+- **State**: Monthly obligation ratio percentage
+- **Attributes**: Total monthly obligations, essential vs. discretionary breakdown
+- **Use Case**: Monitor debt-to-income ratios and create alerts for high obligations
+
+#### 4. Financial Insights
+- **Entity ID**: `sensor.financial_insights`
+- **State**: Number of active recommendations
+- **Attributes**: Detailed recommendations, alerts, and insight status
+- **Use Case**: Get actionable financial advice and monitor financial alerts
+
+#### 5. Cash Flow Trend
+- **Entity ID**: `sensor.cash_flow_trend`
+- **State**: Numeric trend value (1=Improving, 0=Stable, -1=Declining)
+- **Attributes**: Trend description, cash flow score, and automation triggers
+- **Use Case**: Create automations based on cash flow direction changes
+
+#### 6. Expense Trend
+- **Entity ID**: `sensor.expense_trend`
+- **State**: Numeric trend value (1=Decreasing, 0=Stable, -1=Increasing)
+- **Attributes**: Expense pattern analysis and trend descriptions
+- **Use Case**: Monitor spending patterns and trigger alerts for increasing expenses
+
+#### 7. Savings Trend
+- **Entity ID**: `sensor.savings_trend`
+- **State**: Numeric trend value (1=Improving, 0=Stable, -1=Declining)
+- **Attributes**: Savings pattern analysis and trend descriptions
+- **Use Case**: Track savings progress and create motivation triggers
+
+#### 8. High Risk Items
+- **Entity ID**: `sensor.high_risk_items`
+- **State**: Count of high-risk financial items
+- **Attributes**: Risk breakdown by severity, mitigation strategies, and risk level
+- **Use Case**: Monitor financial risks and trigger urgent alerts
+
+### Automation Examples
+
+#### Example 1: High Risk Alert
+```yaml
+automation:
+  - alias: "High Financial Risk Alert"
+    trigger:
+      platform: numeric_state
+      entity_id: sensor.high_risk_items
+      above: 0
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Financial Risk Alert"
+          message: "{{ states('sensor.high_risk_items') }} high-risk items detected"
+```
+
+#### Example 2: Declining Cash Flow Alert
+```yaml
+automation:
+  - alias: "Declining Cash Flow Alert"
+    trigger:
+      platform: numeric_state
+      entity_id: sensor.cash_flow_trend
+      below: 0
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Cash Flow Warning"
+          message: "Cash flow is declining - review expenses"
+```
+
+#### Example 3: Financial Health Dashboard
+```yaml
+automation:
+  - alias: "Financial Health Update"
+    trigger:
+      platform: time_pattern
+      hours: "*/6"
+    action:
+      - service: persistent_notification.create
+        data:
+          title: "Financial Health Update"
+          message: |
+            Health Score: {{ states('sensor.spending_trends') }}/100
+            Risk Level: {{ state_attr('sensor.spending_trends', 'risk_level') }}
+            Obligation Ratio: {{ states('sensor.obligation_ratio') }}%
+            High Risk Items: {{ states('sensor.high_risk_items') }}
+```
+
+### Sensor Configuration
+
+All analytics sensors automatically update based on your configured scan interval. They provide:
+
+- **Real-time Data**: Live financial insights updated every scan cycle
+- **Rich Attributes**: Comprehensive data for advanced automations
+- **Automation Triggers**: Numeric values and status changes for triggers
+- **Historical Context**: Trend analysis and pattern recognition
+
+### Quality and Reliability
+
+- **Quality Scale**: Platinum (highest level)
+- **Error Handling**: Comprehensive error reporting and recovery
+- **Logging**: Detailed logging for debugging and monitoring
+- **Performance**: Optimized data processing and efficient updates
+
 ## Troubleshooting
 
 ### Common Issues

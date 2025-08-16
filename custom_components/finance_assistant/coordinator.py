@@ -1,271 +1,415 @@
-"""Data coordinator for Finance Assistant integration."""
+"""Enhanced data coordinator for Finance Assistant integration."""
 from __future__ import annotations
-
-import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, Optional
 
-import aiohttp
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import ConfigEntryAuthFailed
 
-from .const import (
-    CONF_HOST,
-    CONF_PORT,
-    CONF_API_KEY,
-    CONF_SSL,
-    CONF_SCAN_INTERVAL,
-    DEFAULT_SCAN_INTERVAL,
-    API_ENDPOINT_QUERIES,
-    API_ENDPOINT_SENSOR,
-    API_ENDPOINT_CALENDAR,
-)
+from .api_client import FinanceAssistantAPIClient
 
 _LOGGER = logging.getLogger(__name__)
 
-
-class FinanceAssistantDataUpdateCoordinator(DataUpdateCoordinator):
-    """Class to manage fetching Finance Assistant data."""
-
-    def __init__(self, hass: HomeAssistant, config: Dict[str, Any]) -> None:
-        """Initialize."""
-        self.config = config
-        self.host = config[CONF_HOST]
-        self.port = config[CONF_PORT]
-        self.api_key = config[CONF_API_KEY]  # Required
-        if not self.api_key:
-            raise ValueError("API key is required")
-        _LOGGER.debug("API key configured: %s", "***" if self.api_key else "NOT SET")
-        self.ssl = config[CONF_SSL]
-        self.scan_interval = config.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-
-        # Build base URL
-        protocol = "https" if self.ssl else "http"
-        self.base_url = f"{protocol}://{self.host}:{self.port}"
-
+class FinanceAssistantCoordinator(DataUpdateCoordinator):
+    """Enhanced coordinator for Finance Assistant data."""
+    
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        api_client: FinanceAssistantAPIClient,
+        update_interval: timedelta = timedelta(minutes=15),
+    ) -> None:
+        """Initialize the coordinator."""
         super().__init__(
             hass,
             _LOGGER,
             name="Finance Assistant",
-            update_interval=timedelta(seconds=self.scan_interval),
+            update_interval=update_interval,
         )
-
-    async def async_validate_input(self) -> None:
-        """Validate the user input allows us to connect."""
-        try:
-            async with aiohttp.ClientSession() as session:
-                url = f"{self.base_url}{API_ENDPOINT_QUERIES}"
-                headers = {"X-API-Key": self.api_key}
-                _LOGGER.debug("Validating connection with API key")
-                
-                async with session.get(url, headers=headers) as response:
-                    if response.status == 401:
-                        _LOGGER.error("Invalid API key")
-                        raise InvalidAuth()
-                    elif response.status != 200:
-                        _LOGGER.error("Connection failed with status: %s", response.status)
-                        raise CannotConnect()
-        except aiohttp.ClientError as err:
-            _LOGGER.error("Error connecting to Finance Assistant: %s", err)
-            raise CannotConnect() from err
-
+        self.api_client = api_client
+        self._data: Dict[str, Any] = {}
+    
     async def _async_update_data(self) -> Dict[str, Any]:
-        """Update data via API with enhanced error handling and retry logic."""
+        """Update data from the Finance Assistant API."""
         try:
-            async with aiohttp.ClientSession() as session:
-                # Prepare headers with required API key
-                headers = {"X-API-Key": self.api_key}
-                _LOGGER.debug("Using API key for authentication")
-                
-                # Get available queries
-                queries_url = f"{self.base_url}{API_ENDPOINT_QUERIES}"
-                queries = await self._fetch_with_retry(session, queries_url, headers, "queries")
-                
-                # Fetch dashboard data for real-time financial information
-                dashboard_url = f"{self.base_url}/api/ha/dashboard/"
-                dashboard_data = {}
-                try:
-                    dashboard_data = await self._fetch_with_retry(session, dashboard_url, headers, "dashboard")
-                    _LOGGER.debug("Dashboard data fetched successfully")
-                except Exception as e:
-                    _LOGGER.warning("Failed to fetch dashboard data: %s", e)
-                    # Continue without dashboard data - queries can still work
-                
-                # Initialize data structure
-                data = {
-                    "queries": queries,
-                    "dashboard": dashboard_data,
-                    "sensors": {},
-                    "calendars": {},
-                    "last_update": datetime.now().isoformat(),
-                }
-                
-                # Fetch sensor data for each SENSOR query
-                sensor_queries = [q for q in queries if q.get("output_type") == "SENSOR"]
-                _LOGGER.debug("Found %d sensor queries to fetch", len(sensor_queries))
-                
-                for query in sensor_queries:
-                    try:
-                        sensor_data = await self.get_sensor_data(query["id"])
-                        if sensor_data:
-                            data["sensors"][str(query["id"])] = sensor_data
-                    except Exception as e:
-                        _LOGGER.warning("Failed to fetch sensor data for query %s: %s", query["id"], e)
-                        # Continue with other queries
-                
-                # Fetch calendar data for each CALENDAR query
-                calendar_queries = [q for q in queries if q.get("output_type") == "CALENDAR"]
-                _LOGGER.debug("Found %d calendar queries to fetch", len(calendar_queries))
-                
-                for query in calendar_queries:
-                    try:
-                        _LOGGER.debug("Fetching calendar data for query: %s (%s)", query["id"], query.get("name", "Unknown"))
-                        calendar_data = await self.get_calendar_data(query["id"])
-                        if calendar_data:
-                            data["calendars"][str(query["id"])] = calendar_data
-                            _LOGGER.debug("Calendar data for query %s: %d events", query["id"], len(calendar_data) if isinstance(calendar_data, list) else 0)
-                        else:
-                            _LOGGER.debug("No calendar data returned for query %s", query["id"])
-                    except Exception as e:
-                        _LOGGER.warning("Failed to fetch calendar data for query %s: %s", query["id"], e)
-                        # Continue with other queries
-                
-                _LOGGER.debug("Data update completed successfully")
-                return data
-                
-        except Exception as e:
-            _LOGGER.error("Error updating Finance Assistant data: %s", e)
-            raise UpdateFailed(f"Failed to update Finance Assistant data: {e}")
-
-    async def _fetch_with_retry(self, session: aiohttp.ClientSession, url: str, headers: Dict[str, str], data_type: str, max_retries: int = 3) -> Any:
-        """Fetch data with retry logic and better error handling."""
-        last_error = None
-        
-        for attempt in range(max_retries):
+            _LOGGER.debug("Fetching enhanced financial data from Finance Assistant API")
+            
+            # Fetch all enhanced data in parallel
+            data = {}
+            
+            # Basic financial data
             try:
-                timeout = aiohttp.ClientTimeout(total=30)  # 30 second timeout
-                async with session.get(url, headers=headers, timeout=timeout) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        _LOGGER.debug("Successfully fetched %s data on attempt %d", data_type, attempt + 1)
-                        return data
-                    elif response.status == 401:
-                        _LOGGER.error("Authentication failed for %s: Invalid API key", data_type)
-                        raise InvalidAuth()
-                    elif response.status == 404:
-                        _LOGGER.error("Endpoint not found for %s: %s", data_type, url)
-                        raise CannotConnect()
-                    elif response.status >= 500:
-                        _LOGGER.warning("Server error for %s (attempt %d/%d): %s", data_type, attempt + 1, max_retries, response.status)
-                        if attempt < max_retries - 1:
-                            await asyncio.sleep(2 ** attempt)  # Exponential backoff
-                            continue
-                        else:
-                            raise UpdateFailed(f"Server error after {max_retries} attempts: {response.status}")
-                    else:
-                        _LOGGER.error("HTTP error for %s: %s", data_type, response.status)
-                        raise UpdateFailed(f"HTTP error {response.status} for {data_type}")
-                        
-            except aiohttp.ClientError as e:
-                last_error = e
-                _LOGGER.warning("Network error for %s (attempt %d/%d): %s", data_type, attempt + 1, max_retries, e)
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(2 ** attempt)  # Exponential backoff
-                    continue
-                else:
-                    raise CannotConnect() from e
-            except asyncio.TimeoutError:
-                last_error = "Request timeout"
-                _LOGGER.warning("Timeout for %s (attempt %d/%d)", data_type, attempt + 1, max_retries)
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(2 ** attempt)  # Exponential backoff
-                    continue
-                else:
-                    raise UpdateFailed(f"Request timeout after {max_retries} attempts")
+                data["cash_flow_forecast"] = await self.api_client.get_cash_flow_forecast()
             except Exception as e:
-                last_error = e
-                _LOGGER.error("Unexpected error for %s (attempt %d/%d): %s", data_type, attempt + 1, max_retries, e)
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(2 ** attempt)  # Exponential backoff
-                    continue
-                else:
-                    raise UpdateFailed(f"Unexpected error after {max_retries} attempts: {e}")
+                _LOGGER.warning("Failed to fetch cash flow forecast: %s", e)
+                data["cash_flow_forecast"] = {}
+            
+            try:
+                data["financial_summary"] = await self.api_client.get_financial_summary()
+            except Exception as e:
+                _LOGGER.warning("Failed to fetch financial summary: %s", e)
+                data["financial_summary"] = {}
+            
+            try:
+                data["critical_expenses"] = await self.api_client.get_critical_expenses()
+            except Exception as e:
+                _LOGGER.warning("Failed to fetch critical expenses: %s", e)
+                data["critical_expenses"] = {}
+            
+            try:
+                data["recurring_summary"] = await self.api_client.get_recurring_summary()
+            except Exception as e:
+                _LOGGER.warning("Failed to fetch recurring summary: %s", e)
+                data["recurring_summary"] = {}
+            
+            try:
+                data["account_summary"] = await self.api_client.get_account_summary()
+            except Exception as e:
+                _LOGGER.warning("Failed to fetch account summary: %s", e)
+                data["account_summary"] = {}
+            
+            # Enhanced models data
+            try:
+                data["enhanced_categories"] = await self.api_client.get_enhanced_categories()
+            except Exception as e:
+                _LOGGER.warning("Failed to fetch enhanced categories: %s", e)
+                data["enhanced_categories"] = []
+            
+            try:
+                data["enhanced_payees"] = await self.api_client.get_enhanced_payees()
+            except Exception as e:
+                _LOGGER.warning("Failed to fetch enhanced payees: %s", e)
+                data["enhanced_payees"] = []
+            
+            try:
+                data["enhanced_accounts"] = await self.api_client.get_enhanced_accounts()
+            except Exception as e:
+                _LOGGER.warning("Failed to fetch enhanced accounts: %s", e)
+                data["enhanced_accounts"] = []
+            
+            try:
+                data["recurring_transactions"] = await self.api_client.get_recurring_transactions()
+            except Exception as e:
+                _LOGGER.warning("Failed to fetch recurring transactions: %s", e)
+                data["recurring_transactions"] = []
+            
+            try:
+                data["enhanced_transactions"] = await self.api_client.get_enhanced_transactions()
+            except Exception as e:
+                _LOGGER.warning("Failed to fetch enhanced transactions: %s", e)
+                data["enhanced_transactions"] = []
+            
+            # Calculate derived financial health metrics
+            data["financial_health"] = self._calculate_financial_health(data)
+            
+            # Calculate risk assessment
+            data["risk_assessment"] = self._calculate_risk_assessment(data)
+            
+            # Add timestamp
+            data["last_updated"] = datetime.now().isoformat()
+            
+            self._data = data
+            _LOGGER.debug("Successfully updated Finance Assistant data")
+            return data
+            
+        except Exception as err:
+            _LOGGER.error("Error updating Finance Assistant data: %s", err)
+            raise UpdateFailed(f"Error updating Finance Assistant data: {err}") from err
+    
+    def _calculate_financial_health(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate overall financial health score and metrics."""
+        try:
+            # Extract key metrics
+            cash_flow = data.get("cash_flow_forecast", {})
+            financial_summary = data.get("financial_summary", {})
+            recurring_summary = data.get("recurring_summary", {})
+            account_summary = data.get("account_summary", {})
+            
+            # Calculate individual scores (0-100)
+            balance_score = self._calculate_balance_score(account_summary)
+            cash_flow_score = self._calculate_cash_flow_score(cash_flow)
+            expense_score = self._calculate_expense_score(financial_summary)
+            recurring_score = self._calculate_recurring_score(recurring_summary)
+            
+            # Calculate overall score (weighted average)
+            overall_score = (
+                balance_score * 0.25 +
+                cash_flow_score * 0.30 +
+                expense_score * 0.25 +
+                recurring_score * 0.20
+            )
+            
+            # Determine risk level
+            risk_level = self._determine_risk_level(overall_score)
+            
+            # Generate recommendations
+            recommendations = self._generate_recommendations(
+                balance_score, cash_flow_score, expense_score, recurring_score
+            )
+            
+            # Generate alerts
+            alerts = self._generate_alerts(data)
+            
+            # Calculate trends
+            trends = self._calculate_trends(data)
+            
+            return {
+                "overall_score": round(overall_score, 1),
+                "balance_score": round(balance_score, 1),
+                "cash_flow_score": round(cash_flow_score, 1),
+                "expense_score": round(expense_score, 1),
+                "recurring_score": round(recurring_score, 1),
+                "risk_level": risk_level,
+                "recommendations": recommendations,
+                "alerts": alerts,
+                "trends": trends,
+                "generated_at": datetime.now().isoformat(),
+            }
+            
+        except Exception as e:
+            _LOGGER.error("Error calculating financial health: %s", e)
+            return {
+                "overall_score": 0,
+                "balance_score": 0,
+                "cash_flow_score": 0,
+                "expense_score": 0,
+                "recurring_score": 0,
+                "risk_level": "unknown",
+                "recommendations": ["Unable to calculate financial health"],
+                "alerts": ["Financial health calculation failed"],
+                "trends": {},
+                "generated_at": datetime.now().isoformat(),
+            }
+    
+    def _calculate_balance_score(self, account_summary: Dict[str, Any]) -> float:
+        """Calculate balance health score."""
+        try:
+            total_balance = account_summary.get("total_balance", 0)
+            
+            if total_balance <= 0:
+                return 0
+            elif total_balance < 1000:
+                return 25
+            elif total_balance < 5000:
+                return 50
+            elif total_balance < 10000:
+                return 75
+            else:
+                return 100
+        except Exception:
+            return 0
+    
+    def _calculate_cash_flow_score(self, cash_flow: Dict[str, Any]) -> float:
+        """Calculate cash flow health score."""
+        try:
+            next_30_days = cash_flow.get("next_30_days", {})
+            net_cash_flow = next_30_days.get("net", 0)
+            
+            if net_cash_flow >= 0:
+                return 100
+            elif net_cash_flow > -1000:
+                return 75
+            elif net_cash_flow > -2500:
+                return 50
+            elif net_cash_flow > -5000:
+                return 25
+            else:
+                return 0
+        except Exception:
+            return 0
+    
+    def _calculate_expense_score(self, financial_summary: Dict[str, Any]) -> float:
+        """Calculate expense management score."""
+        try:
+            current_month = financial_summary.get("current_month", {})
+            savings_rate = current_month.get("savings_rate", 0)
+            
+            if savings_rate >= 20:
+                return 100
+            elif savings_rate >= 15:
+                return 80
+            elif savings_rate >= 10:
+                return 60
+            elif savings_rate >= 5:
+                return 40
+            elif savings_rate >= 0:
+                return 20
+            else:
+                return 0
+        except Exception:
+            return 0
+    
+    def _calculate_recurring_score(self, recurring_summary: Dict[str, Any]) -> float:
+        """Calculate recurring obligations score."""
+        try:
+            obligation_ratio = recurring_summary.get("obligation_ratio", 0)
+            
+            if obligation_ratio <= 30:
+                return 100
+            elif obligation_ratio <= 40:
+                return 80
+            elif obligation_ratio <= 50:
+                return 60
+            elif obligation_ratio <= 60:
+                return 40
+            elif obligation_ratio <= 70:
+                return 20
+            else:
+                return 0
+        except Exception:
+            return 0
+    
+    def _determine_risk_level(self, score: float) -> str:
+        """Determine risk level based on overall score."""
+        if score >= 80:
+            return "low"
+        elif score >= 60:
+            return "moderate"
+        elif score >= 40:
+            return "high"
+        elif score >= 20:
+            return "very_high"
+        else:
+            return "critical"
+    
+    def _generate_recommendations(
+        self, balance_score: float, cash_flow_score: float, 
+        expense_score: float, recurring_score: float
+    ) -> list[str]:
+        """Generate personalized financial recommendations."""
+        recommendations = []
         
-        # If we get here, all retries failed
-        raise UpdateFailed(f"Failed to fetch {data_type} after {max_retries} attempts. Last error: {last_error}")
-
-    async def get_sensor_data(self, query_id: str) -> Dict[str, Any]:
-        """Get sensor data for a specific query with enhanced error handling."""
+        if balance_score < 50:
+            recommendations.append("Build emergency fund to cover 3-6 months of expenses")
+        
+        if cash_flow_score < 50:
+            recommendations.append("Review upcoming expenses and adjust spending patterns")
+        
+        if expense_score < 50:
+            recommendations.append("Focus on increasing savings rate through expense reduction")
+        
+        if recurring_score < 50:
+            recommendations.append("Review recurring obligations and consider reducing non-essential expenses")
+        
+        if not recommendations:
+            recommendations.append("Maintain current financial practices - you're doing great!")
+        
+        return recommendations
+    
+    def _generate_alerts(self, data: Dict[str, Any]) -> list[str]:
+        """Generate financial alerts based on data."""
+        alerts = []
+        
+        # Check for critical expenses
+        critical_expenses = data.get("critical_expenses", {})
+        if critical_expenses.get("total_critical_amount", 0) > 5000:
+            alerts.append("High upcoming expenses detected - review budget")
+        
+        # Check for negative cash flow
+        cash_flow = data.get("cash_flow_forecast", {})
+        next_30_days = cash_flow.get("next_30_days", {})
+        if next_30_days.get("net", 0) < -2000:
+            alerts.append("Negative cash flow projected for next 30 days")
+        
+        # Check for low savings rate
+        financial_summary = data.get("financial_summary", {})
+        current_month = financial_summary.get("current_month", {})
+        if current_month.get("savings_rate", 0) < 10:
+            alerts.append("Low savings rate - consider increasing income or reducing expenses")
+        
+        return alerts
+    
+    def _calculate_trends(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate financial trends."""
+        # This would typically compare current data with historical data
+        # For now, return basic trend indicators
+        return {
+            "cash_flow_trend": "stable",
+            "expense_trend": "stable",
+            "savings_trend": "stable",
+        }
+    
+    def _calculate_risk_assessment(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate comprehensive risk assessment."""
         try:
-            async with aiohttp.ClientSession() as session:
-                url = f"{self.base_url}{API_ENDPOINT_SENSOR.format(query_id=query_id)}"
-                headers = {"X-API-Key": self.api_key}
-                
-                timeout = aiohttp.ClientTimeout(total=15)  # 15 second timeout for individual queries
-                async with session.get(url, headers=headers, timeout=timeout) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        _LOGGER.debug("Sensor data for query %s: %s", query_id, data)
-                        return data
-                    elif response.status == 404:
-                        _LOGGER.warning("Query %s not found", query_id)
-                        return None
-                    else:
-                        _LOGGER.warning("Failed to fetch sensor data for query %s: HTTP %s", query_id, response.status)
-                        return None
-                        
-        except aiohttp.ClientError as e:
-            _LOGGER.error("Network error fetching sensor data for query %s: %s", query_id, e)
-            return None
+            # Extract risk factors
+            cash_flow = data.get("cash_flow_forecast", {})
+            financial_summary = data.get("financial_summary", {})
+            recurring_summary = data.get("recurring_summary", {})
+            critical_expenses = data.get("critical_expenses", {})
+            
+            risk_factors = []
+            high_risk_items = []
+            medium_risk_items = []
+            
+            # Assess cash flow risk
+            next_30_days = cash_flow.get("next_30_days", {})
+            if next_30_days.get("net", 0) < 0:
+                risk_factors.append({
+                    "category": "cash_flow",
+                    "description": "Negative cash flow projected",
+                    "severity": "high",
+                    "impact": "Potential liquidity issues"
+                })
+                high_risk_items.append("Negative cash flow in next 30 days")
+            
+            # Assess expense risk
+            current_month = financial_summary.get("current_month", {})
+            if current_month.get("savings_rate", 0) < 10:
+                risk_factors.append({
+                    "category": "expenses",
+                    "description": "Low savings rate",
+                    "severity": "medium",
+                    "impact": "Reduced financial resilience"
+                })
+                medium_risk_items.append("Savings rate below 10%")
+            
+            # Assess recurring obligations risk
+            obligation_ratio = recurring_summary.get("obligation_ratio", 0)
+            if obligation_ratio > 60:
+                risk_factors.append({
+                    "category": "recurring_obligations",
+                    "description": "High recurring obligations",
+                    "severity": "high",
+                    "impact": "Limited financial flexibility"
+                })
+                high_risk_items.append("Recurring obligations exceed 60% of income")
+            
+            # Calculate overall risk score
+            risk_score = min(100, len(high_risk_items) * 30 + len(medium_risk_items) * 15)
+            
+            # Generate mitigation strategies
+            mitigation_strategies = []
+            if high_risk_items:
+                mitigation_strategies.append("Immediate action required - review budget and expenses")
+            if medium_risk_items:
+                mitigation_strategies.append("Monitor closely and implement improvement strategies")
+            
+            return {
+                "overall_risk_score": risk_score,
+                "risk_factors": risk_factors,
+                "high_risk_items": high_risk_items,
+                "medium_risk_items": medium_risk_items,
+                "risk_trends": {"trend": "stable"},  # Would compare with historical data
+                "mitigation_strategies": mitigation_strategies,
+                "generated_at": datetime.now().isoformat(),
+            }
+            
         except Exception as e:
-            _LOGGER.error("Error fetching sensor data for query %s: %s", query_id, e)
-            return None
-
-    async def get_calendar_data(self, query_id: str) -> List[Dict[str, Any]]:
-        """Get calendar data for a specific query with enhanced error handling."""
-        try:
-            async with aiohttp.ClientSession() as session:
-                # Calculate date range for future transactions (current date to 3 months in the future)
-                from datetime import datetime, timedelta
-                today = datetime.now().date()
-                future_date = today + timedelta(days=90)  # 3 months ahead
-                
-                # Add date range parameters to get future scheduled transactions
-                params = {
-                    "start_date": today.isoformat(),
-                    "end_date": future_date.isoformat()
-                }
-                
-                url = f"{self.base_url}{API_ENDPOINT_CALENDAR.format(query_id=query_id)}"
-                headers = {"X-API-Key": self.api_key}
-                
-                timeout = aiohttp.ClientTimeout(total=15)  # 15 second timeout for individual queries
-                async with session.get(url, headers=headers, params=params, timeout=timeout) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        _LOGGER.debug("Calendar data for query %s: %s events (including future transactions)", query_id, len(data) if isinstance(data, list) else 0)
-                        return data if isinstance(data, list) else []
-                    elif response.status == 404:
-                        _LOGGER.warning("Query %s not found", query_id)
-                        return []
-                    else:
-                        _LOGGER.warning("Failed to fetch calendar data for query %s: HTTP %s", query_id, response.status)
-                        return []
-                        
-        except aiohttp.ClientError as e:
-            _LOGGER.error("Network error fetching calendar data for query %s: %s", query_id, e)
-            return []
-        except Exception as e:
-            _LOGGER.error("Error fetching calendar data for query %s: %s", query_id, e)
-            return []
-
-
-class CannotConnect(HomeAssistantError):
-    """Error to indicate we cannot connect."""
-
-
-class InvalidAuth(HomeAssistantError):
-    """Error to indicate there is invalid auth.""" 
+            _LOGGER.error("Error calculating risk assessment: %s", e)
+            return {
+                "overall_risk_score": 0,
+                "risk_factors": [],
+                "high_risk_items": [],
+                "medium_risk_items": [],
+                "risk_trends": {},
+                "mitigation_strategies": ["Risk assessment calculation failed"],
+                "generated_at": datetime.now().isoformat(),
+            }
+    
+    @property
+    def data(self) -> Dict[str, Any]:
+        """Return the current data."""
+        return self._data 

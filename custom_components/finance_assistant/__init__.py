@@ -1,84 +1,122 @@
-"""Finance Assistant integration for Home Assistant."""
+"""Enhanced Finance Assistant integration for Home Assistant."""
 from __future__ import annotations
-
 import logging
-from typing import Any
-
-__version__ = "1.0.52"  # Sync with HACS version
-
-import voluptuous as vol
+from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_PORT, CONF_API_KEY, CONF_SSL, Platform
+from homeassistant.const import CONF_HOST, CONF_PORT, CONF_API_KEY, CONF_SSL, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
-import homeassistant.helpers.config_validation as cv
 
+from .api_client import FinanceAssistantAPIClient
+from .coordinator import FinanceAssistantCoordinator
 from .const import (
-    CONF_SCAN_INTERVAL,
-    DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    DEFAULT_SCAN_INTERVAL,
+    PLATFORMS,
 )
-from .coordinator import FinanceAssistantDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
-
-# No CONFIG_SCHEMA needed - this integration only uses config entries
-
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.CALENDAR]
-
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Finance Assistant from a config entry."""
     hass.data.setdefault(DOMAIN, {})
-
-    # Create coordinator
-    coordinator = FinanceAssistantDataUpdateCoordinator(hass, entry.data)
-    await coordinator.async_config_entry_first_refresh()
-
-    # Store coordinator
-    hass.data[DOMAIN][entry.entry_id] = coordinator
-
-    # Set up platforms
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    return True
+    
+    # Get configuration
+    config = entry.data
+    host = config[CONF_HOST]
+    port = config[CONF_PORT]
+    api_key = config[CONF_API_KEY]
+    ssl = config.get(CONF_SSL, False)
+    scan_interval = config.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+    
+    # Get enhanced options
+    options = entry.options
+    enable_enhanced_sensors = options.get("enable_enhanced_sensors", True)
+    enable_enhanced_calendars = options.get("enable_enhanced_calendars", True)
+    update_interval_financial = options.get("update_interval_financial", 15)
+    update_interval_calendar = options.get("update_interval_calendar", 30)
+    
+    _LOGGER.info("Setting up Finance Assistant integration for %s:%s", host, port)
+    
+    try:
+        # Create API client
+        api_client = FinanceAssistantAPIClient(
+            host=host,
+            port=port,
+            api_key=api_key,
+            ssl=ssl,
+            timeout=30,
+        )
+        
+        # Test connection
+        is_healthy = await api_client.health_check()
+        if not is_healthy:
+            raise ConfigEntryNotReady("Finance Assistant API is not healthy")
+        
+        # Create coordinator with enhanced update intervals
+        coordinator = FinanceAssistantCoordinator(
+            hass=hass,
+            api_client=api_client,
+            update_interval=timedelta(minutes=update_interval_financial),
+        )
+        
+        # Store coordinator in hass data
+        hass.data[DOMAIN][entry.entry_id] = {
+            "coordinator": coordinator,
+            "api_client": api_client,
+            "config": config,
+            "options": options,
+        }
+        
+        # Start coordinator
+        await coordinator.async_config_entry_first_refresh()
+        
+        # Set up platforms based on configuration
+        platforms_to_setup = []
+        
+        if enable_enhanced_sensors:
+            platforms_to_setup.append("sensor")
+        
+        if enable_enhanced_calendars:
+            platforms_to_setup.append("calendar")
+        
+        # Always set up the main integration
+        platforms_to_setup.append("calendar")  # Keep original calendar for backward compatibility
+        
+        # Set up platforms
+        for platform in platforms_to_setup:
+            hass.async_create_task(
+                hass.config_entries.async_forward_entry_setup(entry, platform)
+            )
+        
+        _LOGGER.info("Finance Assistant integration setup completed successfully")
+        return True
+        
+    except Exception as e:
+        _LOGGER.error("Failed to set up Finance Assistant integration: %s", e)
+        raise ConfigEntryNotReady(f"Failed to set up Finance Assistant: {e}") from e
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        hass.data[DOMAIN].pop(entry.entry_id)
-
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    
+    if unload_ok:
+        # Clean up coordinator and API client
+        if entry.entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+            await coordinator.async_shutdown()
+            del hass.data[DOMAIN][entry.entry_id]
+        
+        # Remove domain if no more entries
+        if not hass.data[DOMAIN]:
+            del hass.data[DOMAIN]
+    
     return unload_ok
 
 
-async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
-    """Migrate old entry."""
-    _LOGGER.info("Migrating from version %s", config_entry.version)
-
-    if config_entry.version == 1:
-        # Add new fields with defaults
-        new = {**config_entry.data}
-        new[CONF_SCAN_INTERVAL] = DEFAULT_SCAN_INTERVAL
-        
-        config_entry.version = 2
-        hass.config_entries.async_update_entry(config_entry, data=new)
-
-    if config_entry.version == 2:
-        # Migrate to version 3
-        config_entry.version = 3
-        hass.config_entries.async_update_entry(config_entry)
-
-    if config_entry.version == 3:
-        # Migrate to version 4
-        config_entry.version = 4
-        hass.config_entries.async_update_entry(config_entry)
-
-    # Ensure we support version 4 (current config flow version)
-    if config_entry.version == 4:
-        # Version 4 is supported, no migration needed
-        pass
-
-    _LOGGER.info("Migration to version %s successful", config_entry.version)
-    return True 
+async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload config entry."""
+    await async_unload_entry(hass, entry)
+    await async_setup_entry(hass, entry) 
