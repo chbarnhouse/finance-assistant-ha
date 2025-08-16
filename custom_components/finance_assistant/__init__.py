@@ -80,23 +80,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Start coordinator
         await coordinator.async_refresh()
         
-        # Set up platforms based on configuration
-        platforms_to_setup = []
-        
-        if enable_enhanced_sensors:
-            platforms_to_setup.append("sensor")
-        
-        if enable_enhanced_calendars:
-            platforms_to_setup.append("calendar")
-        
-        # Always set up the main integration
-        platforms_to_setup.append("calendar")  # Keep original calendar for backward compatibility
-        
-        # Set up platforms
-        for platform in platforms_to_setup:
-            hass.async_create_task(
-                hass.config_entries.async_forward_entry_setup(entry, platform)
-            )
+        # Set up platforms using standard Home Assistant mechanism
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
         
         _LOGGER.info("Finance Assistant integration setup completed successfully")
         return True
