@@ -5,11 +5,18 @@ All notable changes to the Finance Assistant Home Assistant Integration will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2025-08-16
+
+### Fixed
+
+- **Import Compatibility**: Fixed `homeassistant.data_flow` import error for older Home Assistant versions
+- **Backward Compatibility**: Changed import to `homeassistant.data_entry_flow` for broader version support
+
 ## [1.1.2] - 2025-08-16
 
 ### Fixed
 
-- **Config Flow Registration**: Added missing config flow registration in __init__.py
+- **Config Flow Registration**: Added missing config flow registration in **init**.py
 - **Integration Setup**: Added missing async_setup function for proper integration initialization
 - **Handler Resolution**: Fixed "Invalid handler specified" error by properly importing config_flow module
 
