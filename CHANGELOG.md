@@ -5,6 +5,14 @@ All notable changes to the Finance Assistant Home Assistant Integration will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2025-08-16
+
+### Fixed
+
+- **API Health Endpoint**: Added missing `/api/health/` endpoint to Django backend for connection validation
+- **Config Flow Connection**: Resolved "Failed to connect" error by implementing proper health check endpoint
+- **Backend Integration**: Added health check view and URL routing for Home Assistant integration
+
 ## [1.1.3] - 2025-08-16
 
 ### Fixed
