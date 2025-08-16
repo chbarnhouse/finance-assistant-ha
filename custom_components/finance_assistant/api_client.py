@@ -320,3 +320,33 @@ class FinanceAssistantAPIClient:
             return True
         except Exception:
             return False
+    
+    # Backward Compatibility Methods
+    
+    async def get_queries(self) -> List[Dict[str, Any]]:
+        """Get queries for backward compatibility."""
+        try:
+            response = await self._make_request("GET", "/api/ha/queries/")
+            return response if isinstance(response, list) else []
+        except Exception as e:
+            _LOGGER.warning("Failed to fetch queries: %s", e)
+            return []
+    
+    async def get_dashboard(self) -> Dict[str, Any]:
+        """Get dashboard data for backward compatibility."""
+        try:
+            response = await self._make_request("GET", "/api/ha/dashboard/")
+            return response if isinstance(response, dict) else {}
+        except Exception as e:
+            _LOGGER.warning("Failed to fetch dashboard: %s", e)
+            return {}
+    
+    async def get_calendars(self) -> Dict[str, Any]:
+        """Get calendar data for backward compatibility."""
+        try:
+            # For now, return empty calendars to prevent errors
+            # This can be enhanced later with actual calendar data
+            return {}
+        except Exception as e:
+            _LOGGER.warning("Failed to fetch calendars: %s", e)
+            return {}

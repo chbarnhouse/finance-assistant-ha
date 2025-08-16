@@ -5,6 +5,15 @@ All notable changes to the Finance Assistant Home Assistant Integration will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5] - 2025-08-16
+
+### Fixed
+
+- **Coordinator Property Error**: Fixed "property 'data' of 'FinanceAssistantCoordinator' object has no setter" error
+- **Backward Compatibility**: Added missing data structures (queries, dashboard, calendars) for old sensor/calendar compatibility
+- **Integration Setup**: Resolved integration setup failure by providing proper coordinator data structure
+- **API Client Methods**: Added missing methods for backward compatibility with existing components
+
 ## [1.1.4] - 2025-08-16
 
 ### Fixed

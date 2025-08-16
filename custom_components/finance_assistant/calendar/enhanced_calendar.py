@@ -24,7 +24,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up enhanced financial calendar."""
-    coordinator: FinanceAssistantCoordinator = hass.data[config_entry.entry_id]["coordinator"]
+    coordinator: FinanceAssistantCoordinator = hass.data["finance_assistant"][config_entry.entry_id]["coordinator"]
     
     # Create enhanced calendar entities
     calendars = [
