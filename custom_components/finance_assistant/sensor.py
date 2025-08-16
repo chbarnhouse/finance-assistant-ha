@@ -30,19 +30,12 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Finance Assistant sensor based on a config entry."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
-    # Create sensors for each SENSOR query
+    # Create basic financial sensors
     sensors = []
-    if coordinator.data and "queries" in coordinator.data:
-        for query in coordinator.data["queries"]:
-            if query.get("output_type") == "SENSOR":
-                sensor = FinanceAssistantSensor(coordinator, query)
-                sensors.append(sensor)
-                _LOGGER.debug("Created sensor for query: %s", query.get("name", ""))
     
-    # Add only essential dashboard sensors that don't conflict with queries
-    # These provide core financial metrics that may not have corresponding queries
+    # Add essential dashboard sensors that provide core financial metrics
     dashboard_sensors = [
         DashboardSensor(coordinator, "Net Worth", "net_worth", "Net Worth"),
         DashboardSensor(coordinator, "Total Assets", "total_assets", "Total Assets"),

@@ -30,15 +30,14 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Finance Assistant calendar based on a config entry."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
-    # Create calendars for each CALENDAR query
+    # Create basic financial calendar
     calendars = []
-    if coordinator.data and "queries" in coordinator.data:
-        for query in coordinator.data["queries"]:
-            if query.get("output_type") == "CALENDAR":
-                calendar = FinanceAssistantCalendar(coordinator, query)
-                calendars.append(calendar)
+    
+    # Create a single calendar for financial events
+    calendar = FinanceAssistantCalendar(coordinator)
+    calendars.append(calendar)
 
     async_add_entities(calendars)
 
@@ -46,13 +45,11 @@ async def async_setup_entry(
 class FinanceAssistantCalendar(CalendarEntity):
     """Representation of a Finance Assistant calendar."""
 
-    def __init__(self, coordinator, query: dict[str, Any]) -> None:
+    def __init__(self, coordinator) -> None:
         """Initialize the calendar."""
         self.coordinator = coordinator
-        self.query = query
-        self.query_id = query["id"]
-        self._attr_unique_id = f"{DOMAIN}_{self.query_id}"
-        self._attr_name = query.get("ha_friendly_name", query["name"])
+        self._attr_unique_id = f"{DOMAIN}_financial_calendar"
+        self._attr_name = "Finance Assistant Calendar"
         self._attr_device_info = DEVICE_INFO
 
     @property
@@ -68,66 +65,12 @@ class FinanceAssistantCalendar(CalendarEntity):
     @property
     def events(self) -> list[CalendarEvent]:
         """Return all events in the calendar."""
-        _LOGGER.debug("Calendar %s: Checking for events", self.query_id)
-        _LOGGER.debug("Calendar %s: Coordinator data keys: %s", self.query_id, list(self.coordinator.data.keys()) if self.coordinator.data else "None")
+        _LOGGER.debug("Finance Assistant Calendar: Checking for events")
+        _LOGGER.debug("Finance Assistant Calendar: Coordinator data keys: %s", list(self.coordinator.data.keys()) if self.coordinator.data else "None")
         
-        if (
-            self.coordinator.data
-            and "calendars" in self.coordinator.data
-            and self.query_id in self.coordinator.data["calendars"]
-        ):
-            calendar_data = self.coordinator.data["calendars"][self.query_id]
-            _LOGGER.debug("Calendar %s: Found calendar data: %s", self.query_id, type(calendar_data))
-            _LOGGER.debug("Calendar %s: Calendar data content: %s", self.query_id, calendar_data)
-            events = []
-            
-            # Handle empty data gracefully
-            if not calendar_data or not isinstance(calendar_data, list):
-                _LOGGER.debug("Calendar %s: No data or invalid format", self.query_id)
-                return events
-            
-            _LOGGER.debug("Calendar %s: Processing %d events", self.query_id, len(calendar_data))
-            
-            for event_data in calendar_data:
-                try:
-                    # Parse event data with better error handling
-                    start_date = self._parse_date(event_data.get("start"))
-                    if not start_date:
-                        _LOGGER.warning("Calendar %s: Event missing start date, skipping", self.query_id)
-                        continue
-                    
-                    # For financial transactions, make them all-day events
-                    # Home Assistant requires date objects (not datetime) for all-day events
-                    from datetime import timedelta
-                    
-                    # Convert to date objects for all-day display
-                    event_start = start_date.date()
-                    event_end = event_start + timedelta(days=1)
-                    
-                    _LOGGER.debug("Calendar %s: Creating all-day event for %s (end: %s)", self.query_id, event_start, event_end)
-                    
-                    # Create calendar event with date objects for all-day display
-                    # Home Assistant will display this as "All Day" when using date objects
-                    
-                    event = CalendarEvent(
-                        summary=self._get_event_summary(event_data),
-                        start=event_start,
-                        end=event_end,
-                        description=self._get_event_description(event_data),
-                        location=self._get_event_location(event_data),
-                        uid=str(event_data.get("uid", event_data.get("id", ""))),
-                    )
-                    
-                    events.append(event)
-                    
-                except Exception as e:
-                    _LOGGER.error("Calendar %s: Error processing event %s: %s", self.query_id, event_data, e)
-                    continue
-            
-            # Sort events by start date
-            events.sort(key=lambda x: x.start)
-            _LOGGER.debug("Calendar %s: Successfully processed %d events", self.query_id, len(events))
-            return events
+        # For now, return empty events list since we don't have calendar data
+        # This will be populated when we implement actual calendar functionality
+        _LOGGER.debug("Finance Assistant Calendar: No calendar data available yet")
         
         return []
 

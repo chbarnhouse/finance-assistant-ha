@@ -107,26 +107,9 @@ class FinanceAssistantCoordinator(DataUpdateCoordinator):
             data["risk_assessment"] = self._calculate_risk_assessment(data)
             
             # Add basic structure for backward compatibility
-            try:
-                # Add queries structure for old sensor/calendar compatibility
-                data["queries"] = await self.api_client.get_queries()
-            except Exception as e:
-                _LOGGER.warning("Failed to fetch queries: %s", e)
-                data["queries"] = []
-            
-            try:
-                # Add dashboard structure for old sensor compatibility
-                data["dashboard"] = await self.api_client.get_dashboard()
-            except Exception as e:
-                _LOGGER.warning("Failed to fetch dashboard: %s", e)
-                data["dashboard"] = {}
-            
-            try:
-                # Add calendars structure for old calendar compatibility
-                data["calendars"] = await self.api_client.get_calendars()
-            except Exception as e:
-                _LOGGER.warning("Failed to fetch calendars: %s", e)
-                data["calendars"] = {}
+            data["queries"] = []
+            data["dashboard"] = {}
+            data["calendars"] = {}
             
             # Add timestamp
             data["last_updated"] = datetime.now().isoformat()
