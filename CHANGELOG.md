@@ -5,6 +5,14 @@ All notable changes to the Finance Assistant Home Assistant Integration will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.7] - 2025-08-16
+
+### Fixed
+
+- **Coordinator Data Property Error**: Fixed "property 'data' of 'FinanceAssistantCoordinator' object has no setter" error
+- **Property Conflict**: Removed custom data property that was conflicting with DataUpdateCoordinator base class
+- **Integration Setup**: Resolved integration setup failure by using base class data handling mechanism
+
 ## [1.1.6] - 2025-08-16
 
 ### Fixed

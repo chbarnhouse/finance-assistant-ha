@@ -29,7 +29,6 @@ class FinanceAssistantCoordinator(DataUpdateCoordinator):
             update_interval=update_interval,
         )
         self.api_client = api_client
-        self._data: Dict[str, Any] = {}
     
     async def _async_update_data(self) -> Dict[str, Any]:
         """Update data from the Finance Assistant API."""
@@ -132,7 +131,6 @@ class FinanceAssistantCoordinator(DataUpdateCoordinator):
             # Add timestamp
             data["last_updated"] = datetime.now().isoformat()
             
-            self._data = data
             _LOGGER.debug("Successfully updated Finance Assistant data")
             return data
             
@@ -431,7 +429,5 @@ class FinanceAssistantCoordinator(DataUpdateCoordinator):
                 "generated_at": datetime.now().isoformat(),
             }
     
-    @property
-    def data(self) -> Dict[str, Any]:
-        """Return the current data."""
-        return self._data 
+    # Remove custom data property - let DataUpdateCoordinator handle it
+    # The base class provides a read-only data property 
