@@ -78,7 +78,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         }
         
         # Start coordinator
-        await coordinator.async_config_entry_first_refresh()
+        await coordinator.async_refresh()
         
         # Set up platforms based on configuration
         platforms_to_setup = []
