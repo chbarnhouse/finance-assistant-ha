@@ -16,7 +16,15 @@ from .const import (
     PLATFORMS,
 )
 
+# Import config flow for registration
+from . import config_flow
+
 _LOGGER = logging.getLogger(__name__)
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Set up the Finance Assistant integration."""
+    hass.data.setdefault(DOMAIN, {})
+    return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Finance Assistant from a config entry."""
