@@ -126,4 +126,20 @@ SENSOR_ATTR_RECOMMENDATIONS = "recommendations"
 SENSOR_ATTR_ALERTS = "alerts"
 SENSOR_ATTR_TRENDS = "trends"
 SENSOR_ATTR_RISK_FACTORS = "risk_factors"
-SENSOR_ATTR_MITIGATION_STRATEGIES = "mitigation_strategies" 
+SENSOR_ATTR_MITIGATION_STRATEGIES = "mitigation_strategies"
+
+# Query attributes
+ATTR_QUERY_ID = "query_id"
+ATTR_QUERY_NAME = "query_name"
+ATTR_QUERY_DESCRIPTION = "query_description"
+ATTR_LAST_UPDATED = "last_updated"
+ATTR_QUERY_TYPE = "query_type"
+
+# Device info
+DEVICE_INFO = {
+    "identifiers": {(DOMAIN, "finance_assistant")},
+    "name": "Finance Assistant",
+    "manufacturer": "Finance Assistant",
+    "model": "Finance Assistant Integration",
+    "sw_version": "1.1.8",
+} 

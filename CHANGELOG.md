@@ -5,6 +5,14 @@ All notable changes to the Finance Assistant Home Assistant Integration will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.9] - 2025-08-16
+
+### Fixed
+
+- **Missing Constants Error**: Fixed "cannot import name 'ATTR_QUERY_ID' from 'custom_components.finance_assistant.const'" error
+- **Integration Setup**: Added missing query attributes and device info constants to const.py
+- **Sensor Setup**: Resolved sensor and calendar import errors by providing required constants
+
 ## [1.1.8] - 2025-08-16
 
 ### Fixed
