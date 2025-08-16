@@ -106,48 +106,56 @@ The Finance Assistant integration now includes **8 comprehensive analytics senso
 ### Available Analytics Sensors
 
 #### 1. Transaction Status Analytics
+
 - **Entity ID**: `sensor.transaction_status_analytics`
 - **State**: Total transaction count
 - **Attributes**: Breakdown by status (real, uncleared, unapproved, scheduled, cancelled)
 - **Use Case**: Monitor transaction processing status and create alerts for pending items
 
 #### 2. Spending Trends
+
 - **Entity ID**: `sensor.spending_trends`
 - **State**: Overall financial health score (0-100)
 - **Attributes**: Cash flow, expense, and savings trends with recommendations and alerts
 - **Use Case**: Track financial health and trigger notifications for declining scores
 
 #### 3. Obligation Ratio
+
 - **Entity ID**: `sensor.obligation_ratio`
 - **State**: Monthly obligation ratio percentage
 - **Attributes**: Total monthly obligations, essential vs. discretionary breakdown
 - **Use Case**: Monitor debt-to-income ratios and create alerts for high obligations
 
 #### 4. Financial Insights
+
 - **Entity ID**: `sensor.financial_insights`
 - **State**: Number of active recommendations
 - **Attributes**: Detailed recommendations, alerts, and insight status
 - **Use Case**: Get actionable financial advice and monitor financial alerts
 
 #### 5. Cash Flow Trend
+
 - **Entity ID**: `sensor.cash_flow_trend`
 - **State**: Numeric trend value (1=Improving, 0=Stable, -1=Declining)
 - **Attributes**: Trend description, cash flow score, and automation triggers
 - **Use Case**: Create automations based on cash flow direction changes
 
 #### 6. Expense Trend
+
 - **Entity ID**: `sensor.expense_trend`
 - **State**: Numeric trend value (1=Decreasing, 0=Stable, -1=Increasing)
 - **Attributes**: Expense pattern analysis and trend descriptions
 - **Use Case**: Monitor spending patterns and trigger alerts for increasing expenses
 
 #### 7. Savings Trend
+
 - **Entity ID**: `sensor.savings_trend`
 - **State**: Numeric trend value (1=Improving, 0=Stable, -1=Declining)
 - **Attributes**: Savings pattern analysis and trend descriptions
 - **Use Case**: Track savings progress and create motivation triggers
 
 #### 8. High Risk Items
+
 - **Entity ID**: `sensor.high_risk_items`
 - **State**: Count of high-risk financial items
 - **Attributes**: Risk breakdown by severity, mitigation strategies, and risk level
@@ -156,6 +164,7 @@ The Finance Assistant integration now includes **8 comprehensive analytics senso
 ### Automation Examples
 
 #### Example 1: High Risk Alert
+
 ```yaml
 automation:
   - alias: "High Financial Risk Alert"
@@ -171,6 +180,7 @@ automation:
 ```
 
 #### Example 2: Declining Cash Flow Alert
+
 ```yaml
 automation:
   - alias: "Declining Cash Flow Alert"
@@ -186,6 +196,7 @@ automation:
 ```
 
 #### Example 3: Financial Health Dashboard
+
 ```yaml
 automation:
   - alias: "Financial Health Update"

@@ -1,11 +1,11 @@
 {
   "domain": "finance_assistant",
-  "name": "Finance Assistant Enhanced",
+  "name": "Finance Assistant",
   "documentation": "https://github.com/chbarnhouse/finance-assistant-ha",
   "dependencies": [],
   "codeowners": ["@chbarnhouse"],
   "requirements": ["aiohttp>=3.8.0"],
-  "version": "1.1.0",
+  "version": "1.1.1",
   "iot_class": "local_polling",
   "config_flow": true,
   "ssdp": [],

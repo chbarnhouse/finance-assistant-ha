@@ -29,7 +29,7 @@ class FinanceAssistantConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     
     def __init__(self) -> None:
         """Initialize the config flow."""
-        self._config: dict[str, Any] = {}
+        pass
     
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -42,11 +42,11 @@ class FinanceAssistantConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 # Validate the connection
                 await self._validate_connection(user_input)
                 
-                # Store the config
-                self._config = user_input
-                
-                # Move to the next step
-                return await self.async_step_enhanced_options()
+                # Create the config entry directly (simplified)
+                return self.async_create_entry(
+                    title=user_input[CONF_NAME],
+                    data=user_input,
+                )
                 
             except CannotConnect:
                 errors["base"] = "cannot_connect"
@@ -75,46 +75,7 @@ class FinanceAssistantConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
     
-    async def async_step_enhanced_options(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle enhanced configuration options."""
-        if user_input is not None:
-            # Merge with existing config
-            self._config.update(user_input)
-            
-            # Create the config entry
-            return self.async_create_entry(
-                title=self._config[CONF_NAME],
-                data=self._config,
-            )
-        
-        # Show enhanced options form
-        return self.async_show_form(
-            step_id="enhanced_options",
-            data_schema=vol.Schema(
-                {
-                    vol.Optional("enable_enhanced_sensors", default=True): bool,
-                    vol.Optional("enable_enhanced_calendars", default=True): bool,
-                    vol.Optional("enable_financial_health", default=True): bool,
-                    vol.Optional("enable_risk_assessment", default=True): bool,
-                    vol.Optional("enable_cash_flow_forecast", default=True): bool,
-                    vol.Optional("enable_critical_expenses", default=True): bool,
-                    vol.Optional("enable_recurring_analysis", default=True): bool,
-                    vol.Optional("update_interval_financial", default=15): vol.All(
-                        vol.Coerce(int), vol.Range(min=5, max=60)
-                    ),
-                    vol.Optional("update_interval_calendar", default=30): vol.All(
-                        vol.Coerce(int), vol.Range(min=10, max=120)
-                    ),
-                }
-            ),
-            description_placeholders={
-                "name": self._config.get(CONF_NAME, DEFAULT_NAME),
-                "host": self._config.get(CONF_HOST, ""),
-                "port": str(self._config.get(CONF_PORT, 8080)),
-            },
-        )
+
     
     async def async_step_import(self, import_info: dict[str, Any]) -> FlowResult:
         """Handle import from configuration.yaml."""
