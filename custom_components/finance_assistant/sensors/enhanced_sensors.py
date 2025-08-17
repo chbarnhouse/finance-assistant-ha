@@ -674,6 +674,7 @@ class CashFlowTrendSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_cash_flow_trend"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -736,6 +737,7 @@ class ExpenseTrendSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_expense_trend"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -798,6 +800,7 @@ class SavingsTrendSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_savings_trend"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -859,6 +862,7 @@ class HighRiskItemsSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_high_risk_items"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -962,6 +966,7 @@ class BalanceScoreSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_balance_score"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -998,6 +1003,7 @@ class CashFlowScoreSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_cash_flow_score"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -1034,6 +1040,7 @@ class ExpenseScoreSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_expense_score"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -1070,6 +1077,7 @@ class RecurringScoreSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_recurring_score"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -1352,6 +1360,7 @@ class ActiveAccountCountSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_active_account_count"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -1389,6 +1398,7 @@ class AccountBalanceByTypeSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_account_balance_by_type"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
