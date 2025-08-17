@@ -5,7 +5,17 @@ All notable changes to the Finance Assistant Home Assistant Integration will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.15] - 2025-08-16
+## [1.1.16] - 2025-08-16
+
+### Added
+
+- **Comprehensive Analytics Sensors**: Added 25+ new financial analytics sensors for Home Assistant
+- **Financial Health Metrics**: Overall score, balance score, cash flow score, expense score, recurring score
+- **Risk Assessment**: Financial risk level sensor with numeric automation support
+- **Obligation Tracking**: Monthly obligations, essential vs discretionary spending breakdown
+- **Account Analytics**: Total balance, active account count, balance by type
+- **Cash Flow Analysis**: Income, expenses, and net cash flow tracking
+- **Enhanced Automation**: All sensors include rich attributes for advanced Home Assistant automations
 
 ### Fixed
 

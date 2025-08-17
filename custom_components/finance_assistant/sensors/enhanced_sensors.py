@@ -38,7 +38,7 @@ async def async_setup_entry(
         MonthlyBudgetSensor(coordinator),
         SavingsRateSensor(coordinator),
         RiskAssessmentSensor(coordinator),
-        # New Analytics Sensors
+        # Analytics Sensors
         TransactionStatusSensor(coordinator),
         SpendingTrendsSensor(coordinator),
         ObligationRatioSensor(coordinator),
@@ -47,6 +47,26 @@ async def async_setup_entry(
         ExpenseTrendSensor(coordinator),
         SavingsTrendSensor(coordinator),
         HighRiskItemsSensor(coordinator),
+        # Financial Summary Analytics
+        OverallFinancialScoreSensor(coordinator),
+        BalanceScoreSensor(coordinator),
+        CashFlowScoreSensor(coordinator),
+        ExpenseScoreSensor(coordinator),
+        RecurringScoreSensor(coordinator),
+        RiskLevelSensor(coordinator),
+        # Recurring Transactions Analytics
+        MonthlyObligationsSensor(coordinator),
+        EssentialObligationsSensor(coordinator),
+        DiscretionaryObligationsSensor(coordinator),
+        ObligationRatioSensor(coordinator),
+        # Account Analytics
+        TotalAccountBalanceSensor(coordinator),
+        ActiveAccountCountSensor(coordinator),
+        AccountBalanceByTypeSensor(coordinator),
+        # Cash Flow Analytics
+        TotalIncomeSensor(coordinator),
+        TotalExpensesSensor(coordinator),
+        NetCashFlowSensor(coordinator),
     ]
     
     async_add_entities(sensors)
@@ -864,3 +884,630 @@ class HighRiskItemsSensor(CoordinatorEntity, SensorEntity):
             return "Very High"
         else:
             return "Critical"
+
+
+# ============================================================================
+# FINANCIAL SUMMARY ANALYTICS SENSORS
+# ============================================================================
+
+class OverallFinancialScoreSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for overall financial health score."""
+    
+    _attr_name = "Overall Financial Score"
+    _attr_icon = "mdi:chart-line"
+    _attr_native_unit_of_measurement = "%"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    
+    def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_overall_financial_score"
+    
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        if not self.coordinator.data or "financial_summary" not in self.coordinator.data:
+            return None
+        
+        summary = self.coordinator.data["financial_summary"]
+        return summary.get("overall_score", 0)
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data or "financial_summary" not in self.coordinator.data:
+            return {}
+        
+        summary = self.coordinator.data["financial_summary"]
+        return {
+            "balance_score": summary.get("balance_score", 0),
+            "cash_flow_score": summary.get("cash_flow_score", 0),
+            "expense_score": summary.get("expense_score", 0),
+            "recurring_score": summary.get("recurring_score", 0),
+            "risk_level": summary.get("risk_level", "unknown"),
+            "recommendations": summary.get("recommendations", []),
+            "alerts": summary.get("alerts", []),
+            "trends": summary.get("trends", {}),
+            "generated_at": summary.get("generated_at"),
+        }
+
+
+class BalanceScoreSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for balance health score."""
+    
+    _attr_name = "Balance Score"
+    _attr_icon = "mdi:scale-balance"
+    _attr_native_unit_of_measurement = "%"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    
+    def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_balance_score"
+    
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        if not self.coordinator.data or "financial_summary" not in self.coordinator.data:
+            return None
+        
+        summary = self.coordinator.data["financial_summary"]
+        return summary.get("balance_score", 0)
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data or "financial_summary" not in self.coordinator.data:
+            return {}
+        
+        summary = self.coordinator.data["financial_summary"]
+        return {
+            "overall_score": summary.get("overall_score", 0),
+            "risk_level": summary.get("risk_level", "unknown"),
+            "generated_at": summary.get("generated_at"),
+        }
+
+
+class CashFlowScoreSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for cash flow health score."""
+    
+    _attr_name = "Cash Flow Score"
+    _attr_icon = "mdi:cash-flow"
+    _attr_native_unit_of_measurement = "%"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    
+    def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_cash_flow_score"
+    
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        if not self.coordinator.data or "financial_summary" not in self.coordinator.data:
+            return None
+        
+        summary = self.coordinator.data["financial_summary"]
+        return summary.get("cash_flow_score", 0)
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data or "financial_summary" not in self.coordinator.data:
+            return {}
+        
+        summary = self.coordinator.data["financial_summary"]
+        return {
+            "overall_score": summary.get("overall_score", 0),
+            "risk_level": summary.get("risk_level", "unknown"),
+            "generated_at": summary.get("generated_at"),
+        }
+
+
+class ExpenseScoreSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for expense management score."""
+    
+    _attr_name = "Expense Score"
+    _attr_icon = "mdi:credit-card-outline"
+    _attr_native_unit_of_measurement = "%"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    
+    def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_expense_score"
+    
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        if not self.coordinator.data or "financial_summary" not in self.coordinator.data:
+            return None
+        
+        summary = self.coordinator.data["financial_summary"]
+        return summary.get("expense_score", 0)
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data or "financial_summary" not in self.coordinator.data:
+            return {}
+        
+        summary = self.coordinator.data["financial_summary"]
+        return {
+            "overall_score": summary.get("overall_score", 0),
+            "risk_level": summary.get("risk_level", "unknown"),
+            "generated_at": summary.get("generated_at"),
+        }
+
+
+class RecurringScoreSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for recurring expenses score."""
+    
+    _attr_name = "Recurring Score"
+    _attr_icon = "mdi:repeat"
+    _attr_native_unit_of_measurement = "%"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    
+    def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_recurring_score"
+    
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        if not self.coordinator.data or "financial_summary" not in self.coordinator.data:
+            return None
+        
+        summary = self.coordinator.data["financial_summary"]
+        return summary.get("recurring_score", 0)
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data or "financial_summary" not in self.coordinator.data:
+            return {}
+        
+        summary = self.coordinator.data["financial_summary"]
+        return {
+            "overall_score": summary.get("overall_score", 0),
+            "risk_level": summary.get("risk_level", "unknown"),
+            "generated_at": summary.get("generated_at"),
+        }
+
+
+class RiskLevelSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for financial risk level."""
+    
+    _attr_name = "Financial Risk Level"
+    _attr_icon = "mdi:alert-triangle"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    
+    def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_risk_level"
+    
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        if not self.coordinator.data or "financial_summary" not in self.coordinator.data:
+            return None
+        
+        summary = self.coordinator.data["financial_summary"]
+        risk_level = summary.get("risk_level", "unknown")
+        
+        # Convert risk level to numeric for automation
+        risk_map = {"low": 1, "moderate": 2, "high": 3, "very_high": 4}
+        return risk_map.get(risk_level, 0)
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data or "financial_summary" not in self.coordinator.data:
+            return {}
+        
+        summary = self.coordinator.data["financial_summary"]
+        risk_level = summary.get("risk_level", "unknown")
+        
+        return {
+            "risk_level_text": risk_level,
+            "risk_level_numeric": self.native_value,
+            "overall_score": summary.get("overall_score", 0),
+            "recommendations": summary.get("recommendations", []),
+            "alerts": summary.get("alerts", []),
+            "generated_at": summary.get("generated_at"),
+        }
+
+
+# ============================================================================
+# RECURRING TRANSACTIONS ANALYTICS SENSORS
+# ============================================================================
+
+class MonthlyObligationsSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for total monthly obligations."""
+    
+    _attr_name = "Monthly Obligations"
+    _attr_icon = "mdi:calendar-month"
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    
+    def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_monthly_obligations"
+    
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        if not self.coordinator.data or "recurring_summary" not in self.coordinator.data:
+            return None
+        
+        summary = self.coordinator.data["recurring_summary"]
+        return summary.get("total_monthly_obligations", 0)
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data or "recurring_summary" not in self.coordinator.data:
+            return {}
+        
+        summary = self.coordinator.data["recurring_summary"]
+        return {
+            "essential_obligations": summary.get("essential_obligations", 0),
+            "discretionary_obligations": summary.get("discretionary_obligations", 0),
+            "obligation_ratio": summary.get("obligation_ratio", 0),
+            "next_due_dates": summary.get("next_due_dates", []),
+            "generated_at": summary.get("generated_at"),
+        }
+
+
+class EssentialObligationsSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for essential monthly obligations."""
+    
+    _attr_name = "Essential Obligations"
+    _attr_icon = "mdi:home"
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    
+    def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_essential_obligations"
+    
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        if not self.coordinator.data or "recurring_summary" not in self.coordinator.data:
+            return None
+        
+        summary = self.coordinator.data["recurring_summary"]
+        return summary.get("essential_obligations", 0)
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data or "recurring_summary" not in self.coordinator.data:
+            return {}
+        
+        summary = self.coordinator.data["recurring_summary"]
+        return {
+            "total_monthly_obligations": summary.get("total_monthly_obligations", 0),
+            "discretionary_obligations": summary.get("discretionary_obligations", 0),
+            "obligation_ratio": summary.get("obligation_ratio", 0),
+            "generated_at": summary.get("generated_at"),
+        }
+
+
+class DiscretionaryObligationsSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for discretionary monthly obligations."""
+    
+    _attr_name = "Discretionary Obligations"
+    _attr_icon = "mdi:shopping"
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    
+    def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_discretionary_obligations"
+    
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        if not self.coordinator.data or "recurring_summary" not in self.coordinator.data:
+            return None
+        
+        summary = self.coordinator.data["recurring_summary"]
+        return summary.get("discretionary_obligations", 0)
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data or "recurring_summary" not in self.coordinator.data:
+            return {}
+        
+        summary = self.coordinator.data["recurring_summary"]
+        return {
+            "total_monthly_obligations": summary.get("total_monthly_obligations", 0),
+            "essential_obligations": summary.get("essential_obligations", 0),
+            "obligation_ratio": summary.get("obligation_ratio", 0),
+                    "generated_at": summary.get("generated_at"),
+    }
+
+
+class ObligationRatioSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for obligation ratio (monthly obligations vs income)."""
+    
+    _attr_name = "Obligation Ratio"
+    _attr_icon = "mdi:percent"
+    _attr_native_unit_of_measurement = "%"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    
+    def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_obligation_ratio"
+    
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        if not self.coordinator.data or "recurring_summary" not in self.coordinator.data:
+            return None
+        
+        summary = self.coordinator.data["recurring_summary"]
+        return summary.get("obligation_ratio", 0)
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data or "recurring_summary" not in self.coordinator.data:
+            return {}
+        
+        summary = self.coordinator.data["recurring_summary"]
+        return {
+            "total_monthly_obligations": summary.get("total_monthly_obligations", 0),
+            "essential_obligations": summary.get("essential_obligations", 0),
+            "discretionary_obligations": summary.get("discretionary_obligations", 0),
+            "generated_at": summary.get("generated_at"),
+        }
+
+
+# ============================================================================
+# ACCOUNT ANALYTICS SENSORS
+# ============================================================================
+
+class TotalAccountBalanceSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for total account balance."""
+    
+    _attr_name = "Total Account Balance"
+    _attr_icon = "mdi:bank"
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    
+    def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_total_account_balance"
+    
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        if not self.coordinator.data or "account_summary" not in self.coordinator.data:
+            return None
+        
+        summary = self.coordinator.data["account_summary"]
+        return summary.get("total_balance", 0)
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data or "account_summary" not in self.coordinator.data:
+            return {}
+        
+        summary = self.coordinator.data["account_summary"]
+        return {
+            "account_count": summary.get("account_count", 0),
+            "active_count": summary.get("active_count", 0),
+            "balance_by_type": summary.get("balance_by_type", {}),
+            "generated_at": summary.get("generated_at"),
+        }
+
+
+class ActiveAccountCountSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for active account count."""
+    
+    _attr_name = "Active Account Count"
+    _attr_icon = "mdi:account-multiple"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    
+    def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_active_account_count"
+    
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        if not self.coordinator.data or "account_summary" not in self.coordinator.data:
+            return None
+        
+        summary = self.coordinator.data["account_summary"]
+        return summary.get("active_count", 0)
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data or "account_summary" not in self.coordinator.data:
+            return {}
+        
+        summary = self.coordinator.data["account_summary"]
+        return {
+            "total_account_count": summary.get("account_count", 0),
+            "total_balance": summary.get("total_balance", 0),
+            "balance_by_type": summary.get("balance_by_type", {}),
+            "generated_at": summary.get("generated_at"),
+        }
+
+
+class AccountBalanceByTypeSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for account balance by type."""
+    
+    _attr_name = "Account Balance by Type"
+    _attr_icon = "mdi:chart-pie"
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    
+    def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_account_balance_by_type"
+    
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        if not self.coordinator.data or "account_summary" not in self.coordinator.data:
+            return None
+        
+        summary = self.coordinator.data["account_summary"]
+        balance_by_type = summary.get("balance_by_type", {})
+        
+        # Return the highest balance type
+        if balance_by_type:
+            return max(balance_by_type.values())
+        return 0
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data or "account_summary" not in self.coordinator.data:
+            return {}
+        
+        summary = self.coordinator.data["account_summary"]
+        balance_by_type = summary.get("balance_by_type", {})
+        
+        return {
+            "total_balance": summary.get("total_balance", 0),
+            "account_count": summary.get("account_count", 0),
+            "active_count": summary.get("active_count", 0),
+            "balance_by_type": balance_by_type,
+            "generated_at": summary.get("generated_at"),
+        }
+
+
+# ============================================================================
+# CASH FLOW ANALYTICS SENSORS
+# ============================================================================
+
+class TotalIncomeSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for total income."""
+    
+    _attr_name = "Total Income"
+    _attr_icon = "mdi:cash-plus"
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    
+    def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_total_income"
+    
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        if not self.coordinator.data or "financial_summary" not in self.coordinator.data:
+            return None
+        
+        # This would need to be calculated from transactions
+        # For now, return a placeholder
+        return 0
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data or "financial_summary" not in self.coordinator.data:
+            return {}
+        
+        summary = self.coordinator.data["financial_summary"]
+        return {
+            "overall_score": summary.get("overall_score", 0),
+            "cash_flow_score": summary.get("cash_flow_score", 0),
+            "risk_level": summary.get("risk_level", "unknown"),
+            "generated_at": summary.get("generated_at"),
+        }
+
+
+class TotalExpensesSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for total expenses."""
+    
+    _attr_name = "Total Expenses"
+    _attr_icon = "mdi:cash-minus"
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    
+    def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_total_expenses"
+    
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        if not self.coordinator.data or "financial_summary" not in self.coordinator.data:
+            return None
+        
+        summary = self.coordinator.data["financial_summary"]
+        return summary.get("expense_score", 0)
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data or "financial_summary" not in self.coordinator.data:
+            return {}
+        
+        summary = self.coordinator.data["financial_summary"]
+        return {
+            "overall_score": summary.get("overall_score", 0),
+            "expense_score": summary.get("expense_score", 0),
+            "risk_level": summary.get("risk_level", "unknown"),
+            "generated_at": summary.get("generated_at"),
+        }
+
+
+class NetCashFlowSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for net cash flow."""
+    
+    _attr_name = "Net Cash Flow"
+    _attr_icon = "mdi:cash-multiple"
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    
+    def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_net_cash_flow"
+    
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        if not self.coordinator.data or "financial_summary" not in self.coordinator.data:
+            return None
+        
+        summary = self.coordinator.data["financial_summary"]
+        # Calculate net cash flow from income and expenses
+        # This would need to be implemented in the backend
+        return 0
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data or "financial_summary" not in self.coordinator.data:
+            return {}
+        
+        summary = self.coordinator.data["financial_summary"]
+        return {
+            "overall_score": summary.get("overall_score", 0),
+            "cash_flow_score": summary.get("cash_flow_score", 0),
+            "risk_level": summary.get("risk_level", "unknown"),
+            "generated_at": summary.get("generated_at"),
+        }
