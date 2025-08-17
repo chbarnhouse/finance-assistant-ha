@@ -335,7 +335,7 @@ class FinanceAssistantAPIClient:
     async def get_dashboard(self) -> Dict[str, Any]:
         """Get dashboard data for backward compatibility."""
         try:
-            response = await self._make_request("GET", "/api/ha/dashboard/")
+            response = await self._make_request("GET", "/api/dashboard/")
             return response if isinstance(response, dict) else {}
         except Exception as e:
             _LOGGER.warning("Failed to fetch dashboard: %s", e)

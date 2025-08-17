@@ -5,6 +5,14 @@ All notable changes to the Finance Assistant Home Assistant Integration will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.14] - 2025-08-16
+
+### Fixed
+
+- **Dashboard Endpoint**: Updated API client to use the new `/api/dashboard/` endpoint
+- **Sensor Data**: Home Assistant sensors should now display real financial data instead of "Unknown"
+- **Backend Integration**: Fixed the missing dashboard API endpoint that was causing sensor failures
+
 ## [1.1.13] - 2025-08-16
 
 ### Fixed
