@@ -267,6 +267,7 @@ class AccountBalanceSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_total_balance"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -303,6 +304,7 @@ class MonthlyBudgetSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_monthly_budget"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -1182,6 +1184,7 @@ class EssentialObligationsSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_essential_obligations"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -1219,6 +1222,7 @@ class DiscretionaryObligationsSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_discretionary_obligations"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -1297,6 +1301,7 @@ class TotalAccountBalanceSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_total_account_balance"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
