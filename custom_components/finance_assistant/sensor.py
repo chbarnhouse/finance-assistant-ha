@@ -43,7 +43,59 @@ async def async_setup_entry(
     ]
     
     sensors.extend(dashboard_sensors)
-    async_add_entities(sensors)
+    
+    # Add enhanced analytics sensors
+    from .sensors.enhanced_sensors import (
+        CashFlowForecastSensor, FinancialHealthSensor, UpcomingExpensesSensor,
+        RecurringObligationsSensor, AccountBalanceSensor, MonthlyBudgetSensor,
+        SavingsRateSensor, RiskAssessmentSensor, TransactionStatusSensor,
+        SpendingTrendsSensor, ObligationRatioSensor, FinancialInsightsSensor,
+        CashFlowTrendSensor, ExpenseTrendSensor, SavingsTrendSensor, HighRiskItemsSensor,
+        OverallFinancialScoreSensor, BalanceScoreSensor, CashFlowScoreSensor,
+        ExpenseScoreSensor, RecurringScoreSensor, RiskLevelSensor,
+        MonthlyObligationsSensor, EssentialObligationsSensor, DiscretionaryObligationsSensor,
+        TotalAccountBalanceSensor, ActiveAccountCountSensor, AccountBalanceByTypeSensor,
+        TotalIncomeSensor, TotalExpensesSensor, NetCashFlowSensor
+    )
+    
+    # Create enhanced sensor instances
+    enhanced_sensors = [
+        CashFlowForecastSensor(coordinator),
+        FinancialHealthSensor(coordinator),
+        UpcomingExpensesSensor(coordinator),
+        RecurringObligationsSensor(coordinator),
+        AccountBalanceSensor(coordinator),
+        MonthlyBudgetSensor(coordinator),
+        SavingsRateSensor(coordinator),
+        RiskAssessmentSensor(coordinator),
+        TransactionStatusSensor(coordinator),
+        SpendingTrendsSensor(coordinator),
+        ObligationRatioSensor(coordinator),
+        FinancialInsightsSensor(coordinator),
+        CashFlowTrendSensor(coordinator),
+        ExpenseTrendSensor(coordinator),
+        SavingsTrendSensor(coordinator),
+        HighRiskItemsSensor(coordinator),
+        OverallFinancialScoreSensor(coordinator),
+        BalanceScoreSensor(coordinator),
+        CashFlowScoreSensor(coordinator),
+        ExpenseScoreSensor(coordinator),
+        RecurringScoreSensor(coordinator),
+        RiskLevelSensor(coordinator),
+        MonthlyObligationsSensor(coordinator),
+        EssentialObligationsSensor(coordinator),
+        DiscretionaryObligationsSensor(coordinator),
+        TotalAccountBalanceSensor(coordinator),
+        ActiveAccountCountSensor(coordinator),
+        AccountBalanceByTypeSensor(coordinator),
+        TotalIncomeSensor(coordinator),
+        TotalExpensesSensor(coordinator),
+        NetCashFlowSensor(coordinator),
+    ]
+    
+    # Add all sensors
+    all_sensors = dashboard_sensors + enhanced_sensors
+    async_add_entities(all_sensors)
 
 
 class DashboardSensor(SensorEntity):

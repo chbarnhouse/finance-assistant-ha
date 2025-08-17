@@ -5,6 +5,14 @@ All notable changes to the Finance Assistant Home Assistant Integration will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.17] - 2025-08-16
+
+### Fixed
+
+- **Sensor Registration Issue**: Fixed enhanced analytics sensors not being registered with Home Assistant
+- **Sensor Loading**: Enhanced sensors are now properly imported and created during setup
+- **Complete Integration**: All 25+ analytics sensors will now appear in Home Assistant after update
+
 ## [1.1.16] - 2025-08-16
 
 ### Added
