@@ -5,6 +5,15 @@ All notable changes to the Finance Assistant Home Assistant Integration will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.13] - 2025-08-16
+
+### Fixed
+
+- **Calendar Platform Caching**: Resolved calendar platform caching issues to ensure latest files are loaded
+- **Integration File Updates**: Ensured all platform files are properly updated and recognized by Home Assistant
+- **Platform Registration**: Final fix for calendar platform registration and entity creation
+- **File Synchronization**: Guaranteed latest calendar.py implementation is loaded by Home Assistant
+
 ## [1.1.12] - 2025-08-16
 
 ### Fixed
