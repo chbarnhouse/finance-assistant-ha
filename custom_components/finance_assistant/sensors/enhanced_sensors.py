@@ -1450,6 +1450,7 @@ class TotalIncomeSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_total_income"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -1489,6 +1490,7 @@ class TotalExpensesSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_total_expenses"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -1527,6 +1529,7 @@ class NetCashFlowSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_net_cash_flow"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
