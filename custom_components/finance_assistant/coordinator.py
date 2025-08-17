@@ -108,7 +108,15 @@ class FinanceAssistantCoordinator(DataUpdateCoordinator):
             
             # Add basic structure for backward compatibility
             data["queries"] = []
-            data["dashboard"] = {}
+            
+            # Fetch dashboard data for Home Assistant sensors
+            try:
+                data["dashboard"] = await self.api_client.get_dashboard()
+                _LOGGER.debug("Successfully fetched dashboard data: %s", data["dashboard"])
+            except Exception as e:
+                _LOGGER.warning("Failed to fetch dashboard data: %s", e)
+                data["dashboard"] = {}
+            
             data["calendars"] = {}
             
             # Add timestamp
