@@ -5,6 +5,14 @@ All notable changes to the Finance Assistant Home Assistant Integration will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.24] - 2025-08-16
+
+### Fixed
+
+- **Final Device Association**: Added missing device_info to first ObligationRatioSensor
+- **Near Complete Entity Organization**: Now 31 out of 34 entities are properly associated with the device
+- **Almost There**: Only 3 entities remaining to be fully organized
+
 ## [1.1.23] - 2025-08-16
 
 ### Fixed
