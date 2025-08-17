@@ -5,6 +5,14 @@ All notable changes to the Finance Assistant Home Assistant Integration will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.21] - 2025-08-16
+
+### Fixed
+
+- **Complete Device Association**: Added missing device_info attributes to ALL remaining sensors
+- **Entity Organization**: All sensors now properly belong to the Finance Assistant device
+- **No More Orphaned Entities**: Every sensor will appear organized under the Finance Assistant device
+
 ## [1.1.20] - 2025-08-16
 
 ### Fixed
