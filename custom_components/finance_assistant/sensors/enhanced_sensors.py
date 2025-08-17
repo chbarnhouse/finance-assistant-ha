@@ -79,6 +79,7 @@ class CashFlowForecastSensor(CoordinatorEntity, SensorEntity):
     _attr_name = "Cash Flow Forecast"
     _attr_icon = "mdi:cash-multiple"
     _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "USD"
     _attr_state_class = SensorStateClass.MEASUREMENT
     
     def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
@@ -162,6 +163,7 @@ class UpcomingExpensesSensor(CoordinatorEntity, SensorEntity):
     _attr_name = "Upcoming Critical Expenses"
     _attr_icon = "mdi:alert-circle"
     _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "USD"
     _attr_state_class = SensorStateClass.MEASUREMENT
     
     def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
@@ -222,6 +224,7 @@ class RecurringObligationsSensor(CoordinatorEntity, SensorEntity):
     _attr_name = "Monthly Recurring Obligations"
     _attr_icon = "mdi:calendar-repeat"
     _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "USD"
     _attr_state_class = SensorStateClass.MEASUREMENT
     
     def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
@@ -261,6 +264,7 @@ class AccountBalanceSensor(CoordinatorEntity, SensorEntity):
     _attr_name = "Total Account Balance"
     _attr_icon = "mdi:bank"
     _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "USD"
     _attr_state_class = SensorStateClass.TOTAL
     
     def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
@@ -298,6 +302,7 @@ class MonthlyBudgetSensor(CoordinatorEntity, SensorEntity):
     _attr_name = "Monthly Budget Status"
     _attr_icon = "mdi:chart-line"
     _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "USD"
     _attr_state_class = SensorStateClass.MEASUREMENT
     
     def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
@@ -1139,6 +1144,7 @@ class MonthlyObligationsSensor(CoordinatorEntity, SensorEntity):
     _attr_name = "Monthly Obligations"
     _attr_icon = "mdi:calendar-month"
     _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "USD"
     _attr_state_class = SensorStateClass.MEASUREMENT
     
     def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
@@ -1178,6 +1184,7 @@ class EssentialObligationsSensor(CoordinatorEntity, SensorEntity):
     _attr_name = "Essential Obligations"
     _attr_icon = "mdi:home"
     _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "USD"
     _attr_state_class = SensorStateClass.MEASUREMENT
     
     def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
@@ -1216,6 +1223,7 @@ class DiscretionaryObligationsSensor(CoordinatorEntity, SensorEntity):
     _attr_name = "Discretionary Obligations"
     _attr_icon = "mdi:shopping"
     _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "USD"
     _attr_state_class = SensorStateClass.MEASUREMENT
     
     def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
@@ -1295,6 +1303,7 @@ class TotalAccountBalanceSensor(CoordinatorEntity, SensorEntity):
     _attr_name = "Total Account Balance"
     _attr_icon = "mdi:bank"
     _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "USD"
     _attr_state_class = SensorStateClass.MEASUREMENT
     
     def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
@@ -1418,6 +1427,7 @@ class TotalIncomeSensor(CoordinatorEntity, SensorEntity):
     _attr_name = "Total Income"
     _attr_icon = "mdi:cash-plus"
     _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "USD"
     _attr_state_class = SensorStateClass.MEASUREMENT
     
     def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
@@ -1456,6 +1466,7 @@ class TotalExpensesSensor(CoordinatorEntity, SensorEntity):
     _attr_name = "Total Expenses"
     _attr_icon = "mdi:cash-minus"
     _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "USD"
     _attr_state_class = SensorStateClass.MEASUREMENT
     
     def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:
@@ -1493,6 +1504,7 @@ class NetCashFlowSensor(CoordinatorEntity, SensorEntity):
     _attr_name = "Net Cash Flow"
     _attr_icon = "mdi:cash-multiple"
     _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "USD"
     _attr_state_class = SensorStateClass.MEASUREMENT
     
     def __init__(self, coordinator: FinanceAssistantCoordinator) -> None:

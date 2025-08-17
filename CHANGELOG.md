@@ -5,6 +5,14 @@ All notable changes to the Finance Assistant Home Assistant Integration will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.20] - 2025-08-16
+
+### Fixed
+
+- **USD Unit of Measure**: Added proper USD unit of measure to all monetary sensors
+- **Currency Formatting**: All monetary sensors now display with proper $X.XX format like Total Assets and Total Liabilities
+- **Consistent Display**: Cash Flow Forecast, Monthly Obligations, Upcoming Expenses, and all balance sensors now show as currency
+
 ## [1.1.19] - 2025-08-16
 
 ### Fixed
