@@ -17,6 +17,7 @@ from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from ..coordinator import FinanceAssistantCoordinator
+from ..const import DEVICE_INFO
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -84,6 +85,7 @@ class CashFlowForecastSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_cash_flow_forecast"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -123,6 +125,7 @@ class FinancialHealthSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_financial_health"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -165,6 +168,7 @@ class UpcomingExpensesSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_upcoming_expenses"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -224,6 +228,7 @@ class RecurringObligationsSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_recurring_obligations"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -902,6 +907,7 @@ class OverallFinancialScoreSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_overall_financial_score"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -1087,6 +1093,7 @@ class RiskLevelSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_risk_level"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
@@ -1136,6 +1143,7 @@ class MonthlyObligationsSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_monthly_obligations"
+        self._attr_device_info = DEVICE_INFO
     
     @property
     def native_value(self) -> StateType:
